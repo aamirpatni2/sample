@@ -55,10 +55,7 @@
     border-radius: 10px;
     font-weight: 600;
   }
-  .time-tag {
-    font-size: 0.65rem;
-    color: #718096;
-  }
+  .time-tag { font-size: 0.65rem; color: #718096; }
   .time-tag.fresh { color: #48bb78; }
   .time-tag.old { color: #f6ad55; }
 
@@ -90,8 +87,26 @@
   .selected-article h3 { font-size: 1rem; color: #e2e8f0; margin-bottom: 8px; line-height: 1.5; }
   .selected-article p { font-size: 0.8rem; color: #718096; line-height: 1.6; }
 
+  /* Platform selector */
+  .platform-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; font-weight: 600; }
+  .platform-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .platform-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #2d3748;
+    background: #1a1f2e;
+    color: #a0aec0;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .platform-btn:hover { border-color: #1da1f2; color: #1da1f2; }
+  .platform-btn.active-fb { background: #1877f2; border-color: #1877f2; color: #fff; }
+  .platform-btn.active-tweet { background: #000; border-color: #1da1f2; color: #1da1f2; }
+  .platform-btn.active-thread { background: #000; border-color: #9333ea; color: #c084fc; }
+
   .tone-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; font-weight: 600; }
-  .tone-buttons { display: flex; gap: 10px; }
+  .tone-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
   .tone-btn {
     padding: 8px 16px;
     border-radius: 20px;
@@ -130,12 +145,22 @@
     padding: 16px;
     position: relative;
   }
+  .post-card.tweet-card { border-color: #1a3a4a; }
+  .post-card.thread-card { border-left: 3px solid #9333ea; }
   .post-card .post-num {
     font-size: 0.7rem;
     color: #7c3aed;
     font-weight: 700;
     margin-bottom: 8px;
   }
+  .post-card.tweet-card .post-num { color: #1da1f2; }
+  .post-card.thread-card .post-num { color: #c084fc; }
+  .char-count {
+    font-size: 0.65rem;
+    color: #4a5568;
+    margin-bottom: 6px;
+  }
+  .char-count.over { color: #fc8181; }
   .post-card .post-text {
     font-size: 0.85rem;
     line-height: 1.7;
@@ -170,6 +195,7 @@
 
   .loader { text-align: center; color: #7c3aed; padding: 20px; font-size: 0.85rem; }
   .error { color: #fc8181; font-size: 0.8rem; padding: 10px; background: #2d1515; border-radius: 8px; }
+  .thread-connector { width: 2px; height: 16px; background: #4a5568; margin: 0 0 0 20px; }
 </style>
 </head>
 <body>
@@ -177,8 +203,8 @@
 <header>
   <h1>🤖 AI News Agent</h1>
   <div style="display:flex;gap:4px;align-items:center">
-    <a href="index.html" class="nav-link active">News Feed</a>
-    <a href="trends.html" class="nav-link">Trend Intelligence</a>
+    <a href="/" class="nav-link active">News Feed</a>
+    <a href="/trends.html" class="nav-link">Trend Intelligence</a>
   </div>
 </header>
 
@@ -198,7 +224,7 @@
   <div class="right-panel" id="right-panel">
     <div class="placeholder">
       <div class="icon">📰</div>
-      <p>Select an AI news item from the left<br/>to generate Facebook posts</p>
+      <p>Select an AI news item from the left<br/>to generate social media content</p>
     </div>
   </div>
 </div>
@@ -207,6 +233,7 @@
 const API = '';
 let selectedArticle = null;
 let selectedTone = 'informative';
+let selectedPlatform = 'facebook';
 
 async function loadNews(forceRefresh = false) {
   const list = document.getElementById('news-list');
@@ -252,12 +279,36 @@ function selectArticle(i) {
   renderRightPanel();
 }
 
+function getPlatformBtnClass(p) {
+  if (selectedPlatform === p) {
+    if (p === 'facebook') return 'active-fb';
+    if (p === 'tweet') return 'active-tweet';
+    if (p === 'thread') return 'active-thread';
+  }
+  return '';
+}
+
+function getGenerateBtnLabel() {
+  if (selectedPlatform === 'facebook') return '✨ Generate Facebook Posts';
+  if (selectedPlatform === 'tweet') return '🐦 Generate Viral Tweets';
+  return '🧵 Generate X Thread';
+}
+
 function renderRightPanel() {
   const a = selectedArticle;
   document.getElementById('right-panel').innerHTML = `
     <div class="selected-article">
       <h3>${a.title}</h3>
       ${a.summary ? `<p>${a.summary}</p>` : ''}
+    </div>
+
+    <div class="platform-section">
+      <h4>Select Platform</h4>
+      <div class="platform-buttons">
+        <button class="platform-btn ${getPlatformBtnClass('facebook')}" onclick="setPlatform('facebook')">📘 Facebook Post</button>
+        <button class="platform-btn ${getPlatformBtnClass('tweet')}" onclick="setPlatform('tweet')">🐦 X Tweet</button>
+        <button class="platform-btn ${getPlatformBtnClass('thread')}" onclick="setPlatform('thread')">🧵 X Thread</button>
+      </div>
     </div>
 
     <div class="tone-section">
@@ -269,10 +320,15 @@ function renderRightPanel() {
       </div>
     </div>
 
-    <button class="generate-btn" id="gen-btn" onclick="generatePosts()">✨ Generate Facebook Posts</button>
+    <button class="generate-btn" id="gen-btn" onclick="generateContent()">${getGenerateBtnLabel()}</button>
 
     <div id="posts-output"></div>
   `;
+}
+
+function setPlatform(p) {
+  selectedPlatform = p;
+  renderRightPanel();
 }
 
 function setTone(tone) {
@@ -281,15 +337,27 @@ function setTone(tone) {
   event.target.classList.add('active');
 }
 
-async function generatePosts() {
+async function generateContent() {
   const btn = document.getElementById('gen-btn');
   const out = document.getElementById('posts-output');
   btn.disabled = true;
   btn.textContent = '⏳ Generating...';
-  out.innerHTML = '<div class="loader">Claude is writing your posts...</div>';
+
+  const loaderMsg = selectedPlatform === 'thread'
+    ? 'Claude is writing your thread...'
+    : selectedPlatform === 'tweet'
+    ? 'Claude is writing viral tweets...'
+    : 'Claude is writing your posts...';
+  out.innerHTML = `<div class="loader">${loaderMsg}</div>`;
+
+  const endpoint = selectedPlatform === 'facebook'
+    ? `${API}/generate`
+    : selectedPlatform === 'tweet'
+    ? `${API}/generate/tweet`
+    : `${API}/generate/thread`;
 
   try {
-    const res = await fetch(`${API}/generate`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -306,25 +374,66 @@ async function generatePosts() {
       return;
     }
 
-    out.innerHTML = `
-      <div class="posts-section">
-        <h4>Generated Facebook Posts</h4>
-        <div class="posts-grid">
-          ${data.posts.map((post, i) => `
-            <div class="post-card">
-              <div class="post-num">Variation ${i + 1}</div>
-              <div class="post-text">${escapeHtml(post)}</div>
-              <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(post)})">📋 Copy</button>
-            </div>
-          `).join('')}
+    if (selectedPlatform === 'facebook') {
+      out.innerHTML = `
+        <div class="posts-section">
+          <h4>Generated Facebook Posts</h4>
+          <div class="posts-grid">
+            ${data.posts.map((post, i) => `
+              <div class="post-card">
+                <div class="post-num">Variation ${i + 1}</div>
+                <div class="post-text">${escapeHtml(post)}</div>
+                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(post))})">📋 Copy</button>
+              </div>
+            `).join('')}
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    } else if (selectedPlatform === 'tweet') {
+      out.innerHTML = `
+        <div class="posts-section">
+          <h4>🐦 Viral Tweets (3 Variations)</h4>
+          <div class="posts-grid">
+            ${data.posts.map((tweet, i) => {
+              const len = tweet.length;
+              const over = len > 280;
+              return `
+              <div class="post-card tweet-card">
+                <div class="post-num">Tweet ${i + 1}</div>
+                <div class="char-count ${over ? 'over' : ''}">${len}/280 chars${over ? ' ⚠️ Too long' : ''}</div>
+                <div class="post-text">${escapeHtml(tweet)}</div>
+                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(tweet))})">📋 Copy</button>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      out.innerHTML = `
+        <div class="posts-section">
+          <h4>🧵 X Thread (${data.posts.length} tweets)</h4>
+          <div class="posts-grid">
+            ${data.posts.map((tweet, i) => `
+              <div class="post-card thread-card">
+                <div class="post-num">Tweet ${i + 1}/${data.posts.length}</div>
+                <div class="char-count ${tweet.length > 280 ? 'over' : ''}">${tweet.length}/280${tweet.length > 280 ? ' ⚠️' : ''}</div>
+                <div class="post-text">${escapeHtml(tweet)}</div>
+                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(tweet))})">📋 Copy</button>
+              </div>
+              ${i < data.posts.length - 1 ? '<div class="thread-connector"></div>' : ''}
+            `).join('')}
+          </div>
+          <div style="margin-top:14px;">
+            <button class="copy-btn" onclick="copyFullThread(${JSON.stringify(data.posts.map(escapeAttr))})">📋 Copy Full Thread</button>
+          </div>
+        </div>
+      `;
+    }
   } catch (e) {
     out.innerHTML = '<div class="error">Could not connect to backend.</div>';
   } finally {
     btn.disabled = false;
-    btn.textContent = '✨ Generate Facebook Posts';
+    btn.textContent = getGenerateBtnLabel();
   }
 }
 
@@ -339,8 +448,20 @@ function copyPost(btn, text) {
   });
 }
 
+function copyFullThread(tweets) {
+  const text = tweets.join('\n\n---\n\n');
+  navigator.clipboard.writeText(text).then(() => {
+    event.target.textContent = '✅ Thread Copied!';
+    setTimeout(() => { event.target.textContent = '📋 Copy Full Thread'; }, 2000);
+  });
+}
+
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escapeAttr(str) {
+  return str;
 }
 
 loadNews();

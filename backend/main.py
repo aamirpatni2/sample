@@ -11,7 +11,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 from news_fetcher import fetch_ai_news
-from agent import generate_posts
+from agent import generate_posts, generate_tweet, generate_thread
 from trend_fetcher import fetch_and_score_trends
 
 app = FastAPI(title="AI Viral Content Intelligence Agent")
@@ -24,14 +24,6 @@ app.add_middleware(
 )
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
-
-@app.get("/")
-def root():
-    return FileResponse(FRONTEND_DIR / "index.html")
-
-@app.get("/trends.html")
-def trends_page():
-    return FileResponse(FRONTEND_DIR / "trends.html")
 
 _news_cache: dict = {"articles": [], "fetched_at": 0}
 _trend_cache: dict = {"trends": [], "fetched_at": 0}
@@ -82,8 +74,29 @@ def generate(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="headline is required")
     if req.tone not in ("informative", "breaking", "thought"):
         raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
-
     posts = generate_posts(req.headline, req.summary, req.tone)
     return {"posts": posts}
 
+
+@app.post("/generate/tweet")
+def generate_tweet_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    tweets = generate_tweet(req.headline, req.summary, req.tone)
+    return {"posts": tweets}
+
+
+@app.post("/generate/thread")
+def generate_thread_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    thread = generate_thread(req.headline, req.summary, req.tone)
+    return {"posts": thread}
+
+
+# Static files mount must be LAST — after all API routes
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
