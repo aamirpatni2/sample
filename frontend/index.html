@@ -5,232 +5,298 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI News Agent</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #dce4f0; min-height: 100vh; }
 
-  header {
-    background: linear-gradient(90deg, #1a1f2e, #232946);
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #2d3748;
-  }
-  header h1 { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
-  header span { font-size: 0.8rem; color: #718096; }
-  .nav-link { padding: 5px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; color: #718096; transition: all 0.12s; }
-  .nav-link:hover { background: #1a2133; color: #e2e8f0; }
-  .nav-link.active { background: #1a2133; color: #a78bfa; }
+/* ── Header ── */
+header {
+  background: #0d1117; border-bottom: 1px solid #1e2735;
+  padding: 0 20px; height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-name { font-size: 14px; font-weight: 700; color: #a78bfa; }
 
-  .layout { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - 57px); }
+/* ── Tabs ── */
+.tabs { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 6px 16px; border-radius: 6px; font-size: 13px;
+  background: transparent; border: none; color: #677492;
+  cursor: pointer; transition: all 0.15s;
+}
+.tab-btn:hover { background: #1a2133; color: #dce4f0; }
+.tab-btn.active { background: #1a2133; color: #a78bfa; font-weight: 600; }
 
-  /* LEFT PANEL */
-  .left-panel { border-right: 1px solid #2d3748; display: flex; flex-direction: column; }
-  .panel-header {
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #2d3748;
-    background: #1a1f2e;
-  }
-  .panel-header h2 { font-size: 0.9rem; color: #a0aec0; font-weight: 600; }
-  .news-list { overflow-y: auto; flex: 1; }
+/* ── Tab Panels ── */
+.tab-panel { display: none; height: calc(100vh - 54px); }
+.tab-panel.active { display: grid; }
 
-  .news-item {
-    padding: 14px 16px;
-    border-bottom: 1px solid #1e2535;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .news-item:hover { background: #1e2535; }
-  .news-item.selected { background: #2d2060; border-left: 3px solid #7c3aed; }
+/* ── NEWS TAB layout ── */
+#tab-news { grid-template-columns: 400px 1fr; }
 
-  .news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-  .source-tag {
-    font-size: 0.65rem;
-    background: #2d3748;
-    color: #a78bfa;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
-  .time-tag { font-size: 0.65rem; color: #718096; }
-  .time-tag.fresh { color: #48bb78; }
-  .time-tag.old { color: #f6ad55; }
+/* Left panel */
+.left-panel { border-right: 1px solid #1e2735; display: flex; flex-direction: column; background: #0d1117; }
+.panel-header {
+  padding: 12px 16px; border-bottom: 1px solid #1e2735;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-header h2 { font-size: 12px; color: #677492; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+.news-list { overflow-y: auto; flex: 1; }
+.news-list::-webkit-scrollbar { width: 3px; }
+.news-list::-webkit-scrollbar-thumb { background: #1e2735; }
 
-  .news-title { font-size: 0.85rem; line-height: 1.5; color: #e2e8f0; }
-  .empty-state { padding: 40px 16px; text-align: center; color: #4a5568; font-size: 0.85rem; }
+.news-item { padding: 14px 16px; border-bottom: 1px solid #111927; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
+.news-item:hover { background: #111927; }
+.news-item.selected { background: #111927; border-left-color: #7c3aed; }
+.news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.source-tag { font-size: 10px; background: #1a2133; color: #a78bfa; padding: 2px 7px; border-radius: 10px; font-weight: 600; font-family: monospace; }
+.time-tag { font-size: 10px; color: #4d5e78; }
+.time-tag.fresh { color: #22c55e; }
+.time-tag.old { color: #f6ad55; }
+.news-title { font-size: 13px; line-height: 1.5; color: #c8d6e8; }
 
-  /* RIGHT PANEL */
-  .right-panel { display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 20px; }
+/* Right panel - news */
+.right-panel { display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 18px; background: #0a0d14; }
+.right-panel::-webkit-scrollbar { width: 3px; }
+.right-panel::-webkit-scrollbar-thumb { background: #1e2735; }
 
-  .placeholder {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #4a5568;
-    gap: 12px;
-    text-align: center;
-  }
-  .placeholder .icon { font-size: 3rem; }
-  .placeholder p { font-size: 0.9rem; }
+.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2d3a52; gap: 12px; text-align: center; }
+.placeholder .icon { font-size: 42px; opacity: 0.4; }
+.placeholder p { font-size: 14px; line-height: 1.6; }
 
-  .selected-article {
-    background: #1a1f2e;
-    border: 1px solid #2d3748;
-    border-radius: 10px;
-    padding: 16px;
-  }
-  .selected-article h3 { font-size: 1rem; color: #e2e8f0; margin-bottom: 8px; line-height: 1.5; }
-  .selected-article p { font-size: 0.8rem; color: #718096; line-height: 1.6; }
+.selected-article { background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 16px; }
+.selected-article h3 { font-size: 15px; color: #dce4f0; margin-bottom: 8px; line-height: 1.5; font-weight: 600; }
+.selected-article p { font-size: 12px; color: #677492; line-height: 1.65; }
 
-  /* Platform selector */
-  .platform-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; font-weight: 600; }
-  .platform-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-  .platform-btn {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid #2d3748;
-    background: #1a1f2e;
-    color: #a0aec0;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .platform-btn:hover { border-color: #1da1f2; color: #1da1f2; }
-  .platform-btn.active-fb { background: #1877f2; border-color: #1877f2; color: #fff; }
-  .platform-btn.active-tweet { background: #000; border-color: #1da1f2; color: #1da1f2; }
-  .platform-btn.active-thread { background: #000; border-color: #9333ea; color: #c084fc; }
+/* Platform selector */
+.section-label { font-size: 11px; color: #677492; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.platform-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.platform-btn {
+  padding: 8px 16px; border-radius: 20px; border: 1px solid #1e2735;
+  background: #0d1117; color: #677492; font-size: 12px; cursor: pointer; transition: all 0.15s;
+}
+.platform-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+.platform-btn.active-fb { background: #1877f2; border-color: #1877f2; color: #fff; }
+.platform-btn.active-tweet { background: #111; border-color: #1da1f2; color: #1da1f2; }
+.platform-btn.active-thread { background: #111; border-color: #9333ea; color: #c084fc; }
 
-  .tone-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; font-weight: 600; }
-  .tone-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-  .tone-btn {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid #2d3748;
-    background: #1a1f2e;
-    color: #a0aec0;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .tone-btn:hover { border-color: #7c3aed; color: #a78bfa; }
-  .tone-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+/* Tone buttons */
+.tone-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.tone-btn {
+  padding: 7px 14px; border-radius: 20px; border: 1px solid #1e2735;
+  background: #0d1117; color: #677492; font-size: 12px; cursor: pointer; transition: all 0.15s;
+}
+.tone-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+.tone-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
 
-  .generate-btn {
-    padding: 12px 28px;
-    background: #7c3aed;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s;
-    align-self: flex-start;
-  }
-  .generate-btn:hover { background: #6d28d9; }
-  .generate-btn:disabled { background: #4a5568; cursor: not-allowed; }
+.generate-btn {
+  padding: 11px 24px; background: #7c3aed; color: #fff; border: none;
+  border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s; align-self: flex-start;
+}
+.generate-btn:hover { background: #6d28d9; }
+.generate-btn:disabled { background: #2d3748; cursor: not-allowed; }
 
-  .posts-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 12px; font-weight: 600; }
-  .posts-grid { display: flex; flex-direction: column; gap: 14px; }
+/* Post cards */
+.posts-grid { display: flex; flex-direction: column; gap: 12px; }
+.post-card { background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 16px; }
+.post-card.tweet-card { border-color: #1a3a4a; }
+.post-card.thread-card { border-left: 3px solid #9333ea; }
+.post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; font-family: monospace; color: #7c3aed; }
+.tweet-card .post-num { color: #1da1f2; }
+.thread-card .post-num { color: #c084fc; }
+.char-count { font-size: 10px; color: #4d5e78; margin-bottom: 6px; }
+.char-count.over { color: #fc8181; }
+.post-text { font-size: 13px; line-height: 1.7; color: #c8d6e8; white-space: pre-wrap; }
+.thread-connector { width: 2px; height: 14px; background: #1e2735; margin: 0 0 0 20px; }
 
-  .post-card {
-    background: #1a1f2e;
-    border: 1px solid #2d3748;
-    border-radius: 10px;
-    padding: 16px;
-    position: relative;
-  }
-  .post-card.tweet-card { border-color: #1a3a4a; }
-  .post-card.thread-card { border-left: 3px solid #9333ea; }
-  .post-card .post-num {
-    font-size: 0.7rem;
-    color: #7c3aed;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-  .post-card.tweet-card .post-num { color: #1da1f2; }
-  .post-card.thread-card .post-num { color: #c084fc; }
-  .char-count {
-    font-size: 0.65rem;
-    color: #4a5568;
-    margin-bottom: 6px;
-  }
-  .char-count.over { color: #fc8181; }
-  .post-card .post-text {
-    font-size: 0.85rem;
-    line-height: 1.7;
-    color: #cbd5e0;
-    white-space: pre-wrap;
-  }
-  .copy-btn {
-    margin-top: 12px;
-    padding: 6px 14px;
-    background: transparent;
-    border: 1px solid #2d3748;
-    color: #a0aec0;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .copy-btn:hover { border-color: #48bb78; color: #48bb78; }
-  .copy-btn.copied { border-color: #48bb78; color: #48bb78; }
+.copy-btn {
+  margin-top: 10px; padding: 5px 12px; background: transparent;
+  border: 1px solid #1e2735; color: #677492; border-radius: 6px;
+  font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.copy-btn:hover { border-color: #22c55e; color: #22c55e; }
+.copy-btn.copied { border-color: #22c55e; color: #22c55e; }
 
-  .btn-refresh {
-    padding: 6px 14px;
-    background: transparent;
-    border: 1px solid #2d3748;
-    color: #a0aec0;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-refresh:hover { border-color: #a78bfa; color: #a78bfa; }
+.btn-sm {
+  padding: 5px 12px; background: transparent; border: 1px solid #1e2735;
+  color: #677492; border-radius: 6px; font-size: 11px; font-family: monospace;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-sm:hover { border-color: #a78bfa; color: #a78bfa; }
 
-  .loader { text-align: center; color: #7c3aed; padding: 20px; font-size: 0.85rem; }
-  .error { color: #fc8181; font-size: 0.8rem; padding: 10px; background: #2d1515; border-radius: 8px; }
-  .thread-connector { width: 2px; height: 16px; background: #4a5568; margin: 0 0 0 20px; }
+/* ── TRENDS TAB layout ── */
+#tab-trends { grid-template-columns: 380px 1fr; }
+
+.feed { border-right: 1px solid #1e2735; display: flex; flex-direction: column; background: #0d1117; }
+.feed-top { padding: 12px 16px; border-bottom: 1px solid #1e2735; display: flex; align-items: center; justify-content: space-between; }
+.feed-label { font-size: 10px; font-family: monospace; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; }
+.feed-count { font-size: 11px; font-family: monospace; color: #f0a500; background: rgba(240,165,0,0.1); padding: 2px 8px; border-radius: 20px; }
+.trend-list { overflow-y: auto; flex: 1; }
+.trend-list::-webkit-scrollbar { width: 3px; }
+.trend-list::-webkit-scrollbar-thumb { background: #1e2735; }
+
+.trend-item { padding: 12px 16px; border-bottom: 1px solid #111927; cursor: pointer; transition: background 0.1s; position: relative; border-left: 3px solid transparent; }
+.trend-item:hover { background: #111927; border-left-color: #2d3a52; }
+.trend-item.active { background: #111927; border-left-color: #f0a500; }
+
+.item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.score-badge { font-family: monospace; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+.score-high  { background: rgba(34,197,94,0.15); color: #22c55e; }
+.score-viral { background: rgba(239,68,68,0.15); color: #ef4444; }
+.score-med   { background: rgba(234,179,8,0.15); color: #eab308; }
+.score-low   { background: rgba(107,114,128,0.15); color: #6b7280; }
+.item-source { font-family: monospace; font-size: 10px; color: #4d5e78; flex: 1; }
+.item-time   { font-family: monospace; font-size: 10px; color: #4d5e78; }
+.item-time.fresh { color: #22c55e; }
+.item-title  { font-size: 13px; line-height: 1.5; color: #c8d6e8; margin-bottom: 5px; }
+.item-reason { font-size: 11px; color: #4d5e78; font-style: italic; }
+
+/* Trend detail */
+.detail { display: flex; flex-direction: column; overflow: hidden; background: #0a0d14; }
+.detail-inner { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.detail-inner::-webkit-scrollbar { width: 3px; }
+.detail-inner::-webkit-scrollbar-thumb { background: #1e2735; }
+
+.score-header { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; }
+.dial { width: 80px; height: 80px; flex-shrink: 0; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px solid; }
+.dial-number { font-size: 22px; font-weight: 700; font-family: monospace; line-height: 1; }
+.dial-label  { font-size: 9px; color: #677492; letter-spacing: 0.05em; margin-top: 2px; }
+.dial-viral  { border-color: #ef4444; color: #ef4444; }
+.dial-high   { border-color: #22c55e; color: #22c55e; }
+.dial-med    { border-color: #eab308; color: #eab308; }
+.dial-low    { border-color: #4d5e78; color: #4d5e78; }
+.score-meta  { flex: 1; }
+.score-tier  { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.score-reason { font-size: 12px; color: #677492; line-height: 1.5; }
+
+.breakdown { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+.breakdown-title { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+.bar-label { font-size: 11px; color: #677492; width: 130px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: #1e2735; border-radius: 3px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 3px; background: #f0a500; transition: width 0.4s ease; }
+.bar-val   { font-family: monospace; font-size: 11px; color: #a78bfa; width: 36px; text-align: right; }
+
+.content-card { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+.card-label   { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.card-title   { font-size: 15px; font-weight: 600; color: #dce4f0; line-height: 1.5; margin-bottom: 8px; }
+.card-summary { font-size: 12px; color: #677492; line-height: 1.65; margin-bottom: 12px; }
+.card-footer  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.meta-pill    { font-family: monospace; font-size: 10px; background: #111927; color: #677492; padding: 3px 8px; border-radius: 12px; border: 1px solid #1e2735; }
+.meta-pill.accent { color: #f0a500; border-color: rgba(240,165,0,0.2); background: rgba(240,165,0,0.05); }
+.link-btn     { margin-left: auto; font-size: 11px; color: #a78bfa; text-decoration: none; padding: 4px 10px; border: 1px solid #2d2060; border-radius: 6px; font-family: monospace; transition: all 0.12s; }
+.link-btn:hover { background: #2d2060; }
+
+.stats-row { display: flex; gap: 12px; }
+.stat-box  { flex: 1; background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 12px; text-align: center; }
+.stat-num  { font-size: 20px; font-weight: 700; font-family: monospace; color: #dce4f0; }
+.stat-lbl  { font-size: 10px; color: #4d5e78; font-family: monospace; letter-spacing: 0.04em; margin-top: 2px; }
+
+.opp-box   { background: rgba(240,165,0,0.05); border: 1px solid rgba(240,165,0,0.2); border-radius: 12px; padding: 16px; }
+.opp-title { font-size: 12px; font-weight: 600; color: #f0a500; margin-bottom: 8px; }
+.opp-text  { font-size: 12px; color: #8b9ab3; line-height: 1.65; }
+
+/* Rewrite */
+.rewrite-btn {
+  padding: 11px 20px; background: linear-gradient(135deg, #7c3aed, #1da1f2);
+  color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s; width: 100%;
+}
+.rewrite-btn:hover { opacity: 0.9; }
+.rewrite-btn:disabled { background: #2d3748; cursor: not-allowed; }
+.rewrite-result { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.analysis-item { background: #111927; border-radius: 8px; padding: 10px; }
+.analysis-key  { font-size: 10px; color: #4d5e78; font-family: monospace; text-transform: uppercase; margin-bottom: 4px; }
+.analysis-val  { font-size: 12px; color: #a78bfa; line-height: 1.5; }
+.rewrite-post  { background: #111927; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.rewrite-post-label { font-size: 10px; color: #677492; font-family: monospace; text-transform: uppercase; margin-bottom: 8px; }
+.rewrite-post-text  { font-size: 13px; color: #dce4f0; line-height: 1.7; white-space: pre-wrap; }
+
+/* Loader & Error */
+.loader { text-align: center; color: #7c3aed; padding: 24px; font-size: 13px; }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #1e2735; border-top-color: #f0a500; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-msg { color: #fc8181; font-size: 12px; padding: 10px 14px; background: #2d1515; border-radius: 8px; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🤖 AI News Agent</h1>
-  <div style="display:flex;gap:4px;align-items:center">
-    <a href="/" class="nav-link active">News Feed</a>
-    <a href="/trends.html" class="nav-link">Trend Intelligence</a>
+  <div class="brand">
+    <span style="font-size:18px">🤖</span>
+    <span class="brand-name">AI News Agent</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('news')">📰 News Feed</button>
+    <button class="tab-btn" onclick="switchTab('trends')">📡 Viral Intelligence</button>
   </div>
 </header>
 
-<div class="layout">
-  <!-- LEFT: News List -->
+<!-- ══ TAB 1: NEWS FEED ══ -->
+<div class="tab-panel active" id="tab-news">
+
   <div class="left-panel">
     <div class="panel-header">
-      <h2 id="news-count">Loading news...</h2>
-      <button class="btn-refresh" onclick="loadNews(true)">↻ Refresh</button>
+      <h2 id="news-count">Loading...</h2>
+      <button class="btn-sm" onclick="loadNews(true)">↻ Refresh</button>
     </div>
     <div class="news-list" id="news-list">
       <div class="loader">Fetching AI news...</div>
     </div>
   </div>
 
-  <!-- RIGHT: Generate Panel -->
   <div class="right-panel" id="right-panel">
     <div class="placeholder">
       <div class="icon">📰</div>
       <p>Select an AI news item from the left<br/>to generate social media content</p>
     </div>
   </div>
+
+</div>
+
+<!-- ══ TAB 2: VIRAL INTELLIGENCE ══ -->
+<div class="tab-panel" id="tab-trends">
+
+  <div class="feed">
+    <div class="feed-top">
+      <span class="feed-label">Scored Trends</span>
+      <span style="display:flex;gap:8px;align-items:center">
+        <span class="feed-count" id="trend-count">loading...</span>
+        <button class="btn-sm" onclick="loadTrends(true)">↻</button>
+      </span>
+    </div>
+    <div class="trend-list" id="trend-list">
+      <div class="loader"><span class="spin"></span>Scoring AI trends...</div>
+    </div>
+  </div>
+
+  <div class="detail">
+    <div class="detail-inner" id="trend-detail">
+      <div class="placeholder">
+        <div class="icon">📊</div>
+        <p>Koi trend select karo<br/>Viral score aur analysis dekhne ke liye</p>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 const API = '';
+
+/* ══ TAB SWITCHING ══ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'trends' && allTrends.length === 0) loadTrends();
+}
+
+/* ══════════════════════════════════
+   NEWS FEED
+══════════════════════════════════ */
 let selectedArticle = null;
 let selectedTone = 'informative';
 let selectedPlatform = 'facebook';
@@ -239,22 +305,18 @@ async function loadNews(forceRefresh = false) {
   const list = document.getElementById('news-list');
   const countEl = document.getElementById('news-count');
   list.innerHTML = '<div class="loader">Fetching AI news...</div>';
-
   try {
     const endpoint = forceRefresh ? `${API}/news/refresh` : `${API}/news`;
     const method = forceRefresh ? 'POST' : 'GET';
     const res = await fetch(endpoint, { method });
     const data = await res.json();
-
-    countEl.textContent = `${data.count} AI articles (24hr)`;
-
+    countEl.textContent = `${data.count} articles (24hr)`;
     if (!data.articles.length) {
-      list.innerHTML = '<div class="empty-state">No fresh AI news found right now.<br/>Try refreshing in a bit.</div>';
+      list.innerHTML = '<div class="loader" style="color:#4d5e78">No fresh AI news found. Try refreshing.</div>';
       return;
     }
-
     list.innerHTML = data.articles.map((a, i) => `
-      <div class="news-item" onclick="selectArticle(${i})" id="item-${i}">
+      <div class="news-item" onclick="selectArticle(${i})" id="ni-${i}">
         <div class="news-meta">
           <span class="source-tag">${a.source}</span>
           <span class="time-tag ${a.age_hours < 6 ? 'fresh' : a.age_hours > 20 ? 'old' : ''}">
@@ -264,31 +326,26 @@ async function loadNews(forceRefresh = false) {
         <div class="news-title">${a.title}</div>
       </div>
     `).join('');
-
     window._articles = data.articles;
-  } catch (e) {
-    list.innerHTML = '<div class="empty-state error">Could not connect to backend.<br/>Make sure the server is running on port 8000.</div>';
-    countEl.textContent = 'Error loading news';
+  } catch(e) {
+    list.innerHTML = '<div class="loader" style="color:#fc8181">Could not connect to backend.</div>';
+    countEl.textContent = 'Error';
   }
 }
 
 function selectArticle(i) {
   document.querySelectorAll('.news-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById(`item-${i}`)?.classList.add('selected');
+  document.getElementById(`ni-${i}`)?.classList.add('selected');
   selectedArticle = window._articles[i];
   renderRightPanel();
 }
 
-function getPlatformBtnClass(p) {
-  if (selectedPlatform === p) {
-    if (p === 'facebook') return 'active-fb';
-    if (p === 'tweet') return 'active-tweet';
-    if (p === 'thread') return 'active-thread';
-  }
-  return '';
+function getPlatformClass(p) {
+  if (selectedPlatform !== p) return '';
+  return p === 'facebook' ? 'active-fb' : p === 'tweet' ? 'active-tweet' : 'active-thread';
 }
 
-function getGenerateBtnLabel() {
+function getGenLabel() {
   if (selectedPlatform === 'facebook') return '✨ Generate Facebook Posts';
   if (selectedPlatform === 'tweet') return '🐦 Generate Viral Tweets';
   return '🧵 Generate X Thread';
@@ -302,168 +359,285 @@ function renderRightPanel() {
       ${a.summary ? `<p>${a.summary}</p>` : ''}
     </div>
 
-    <div class="platform-section">
-      <h4>Select Platform</h4>
+    <div>
+      <div class="section-label">Platform</div>
       <div class="platform-buttons">
-        <button class="platform-btn ${getPlatformBtnClass('facebook')}" onclick="setPlatform('facebook')">📘 Facebook Post</button>
-        <button class="platform-btn ${getPlatformBtnClass('tweet')}" onclick="setPlatform('tweet')">🐦 X Tweet</button>
-        <button class="platform-btn ${getPlatformBtnClass('thread')}" onclick="setPlatform('thread')">🧵 X Thread</button>
+        <button class="platform-btn ${getPlatformClass('facebook')}" onclick="setPlatform('facebook')">📘 Facebook Post</button>
+        <button class="platform-btn ${getPlatformClass('tweet')}" onclick="setPlatform('tweet')">🐦 X Tweet</button>
+        <button class="platform-btn ${getPlatformClass('thread')}" onclick="setPlatform('thread')">🧵 X Thread</button>
       </div>
     </div>
 
-    <div class="tone-section">
-      <h4>Select Tone</h4>
+    <div>
+      <div class="section-label">Tone</div>
       <div class="tone-buttons">
-        <button class="tone-btn ${selectedTone === 'informative' ? 'active' : ''}" onclick="setTone('informative')">📊 Informative</button>
-        <button class="tone-btn ${selectedTone === 'breaking' ? 'active' : ''}" onclick="setTone('breaking')">🚨 Breaking News</button>
-        <button class="tone-btn ${selectedTone === 'thought' ? 'active' : ''}" onclick="setTone('thought')">💭 Thought-Provoking</button>
+        <button class="tone-btn ${selectedTone==='informative'?'active':''}" onclick="setTone('informative')">📊 Informative</button>
+        <button class="tone-btn ${selectedTone==='breaking'?'active':''}" onclick="setTone('breaking')">🚨 Breaking</button>
+        <button class="tone-btn ${selectedTone==='thought'?'active':''}" onclick="setTone('thought')">💭 Thought-Provoking</button>
       </div>
     </div>
 
-    <button class="generate-btn" id="gen-btn" onclick="generateContent()">${getGenerateBtnLabel()}</button>
-
+    <button class="generate-btn" id="gen-btn" onclick="generateContent()">${getGenLabel()}</button>
     <div id="posts-output"></div>
   `;
 }
 
-function setPlatform(p) {
-  selectedPlatform = p;
-  renderRightPanel();
-}
-
+function setPlatform(p) { selectedPlatform = p; renderRightPanel(); }
 function setTone(tone) {
   selectedTone = tone;
-  document.querySelectorAll('.tone-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
 }
 
 async function generateContent() {
   const btn = document.getElementById('gen-btn');
   const out = document.getElementById('posts-output');
-  btn.disabled = true;
-  btn.textContent = '⏳ Generating...';
+  btn.disabled = true; btn.textContent = '⏳ Generating...';
+  out.innerHTML = `<div class="loader">Claude is writing your content...</div>`;
 
-  const loaderMsg = selectedPlatform === 'thread'
-    ? 'Claude is writing your thread...'
-    : selectedPlatform === 'tweet'
-    ? 'Claude is writing viral tweets...'
-    : 'Claude is writing your posts...';
-  out.innerHTML = `<div class="loader">${loaderMsg}</div>`;
-
-  const endpoint = selectedPlatform === 'facebook'
-    ? `${API}/generate`
-    : selectedPlatform === 'tweet'
-    ? `${API}/generate/tweet`
+  const endpoint = selectedPlatform === 'facebook' ? `${API}/generate`
+    : selectedPlatform === 'tweet' ? `${API}/generate/tweet`
     : `${API}/generate/thread`;
 
   try {
     const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        headline: selectedArticle.title,
-        summary: selectedArticle.summary,
-        tone: selectedTone,
-      }),
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ headline: selectedArticle.title, summary: selectedArticle.summary, tone: selectedTone }),
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      out.innerHTML = `<div class="error">${data.detail || 'Generation failed'}</div>`;
-      return;
-    }
+    if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail || 'Generation failed'}</div>`; return; }
 
     if (selectedPlatform === 'facebook') {
-      out.innerHTML = `
-        <div class="posts-section">
-          <h4>Generated Facebook Posts</h4>
-          <div class="posts-grid">
-            ${data.posts.map((post, i) => `
-              <div class="post-card">
-                <div class="post-num">Variation ${i + 1}</div>
-                <div class="post-text">${escapeHtml(post)}</div>
-                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(post))})">📋 Copy</button>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
+      out.innerHTML = renderPostCards(data.posts, 'Variation', '');
     } else if (selectedPlatform === 'tweet') {
-      out.innerHTML = `
-        <div class="posts-section">
-          <h4>🐦 Viral Tweets (3 Variations)</h4>
-          <div class="posts-grid">
-            ${data.posts.map((tweet, i) => {
-              const len = tweet.length;
-              const over = len > 280;
-              return `
-              <div class="post-card tweet-card">
-                <div class="post-num">Tweet ${i + 1}</div>
-                <div class="char-count ${over ? 'over' : ''}">${len}/280 chars${over ? ' ⚠️ Too long' : ''}</div>
-                <div class="post-text">${escapeHtml(tweet)}</div>
-                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(tweet))})">📋 Copy</button>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-      `;
+      out.innerHTML = `<div class="section-label" style="margin-top:4px">🐦 Viral Tweets (3 Variations)</div>` +
+        data.posts.map((t, i) => `
+          <div class="post-card tweet-card">
+            <div class="post-num">Tweet ${i+1}</div>
+            <div class="char-count ${t.length>280?'over':''}">${t.length}/280 chars${t.length>280?' ⚠️':''}</div>
+            <div class="post-text">${esc(t)}</div>
+            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(t)})">📋 Copy</button>
+          </div>`).join('');
     } else {
-      out.innerHTML = `
-        <div class="posts-section">
-          <h4>🧵 X Thread (${data.posts.length} tweets)</h4>
-          <div class="posts-grid">
-            ${data.posts.map((tweet, i) => `
-              <div class="post-card thread-card">
-                <div class="post-num">Tweet ${i + 1}/${data.posts.length}</div>
-                <div class="char-count ${tweet.length > 280 ? 'over' : ''}">${tweet.length}/280${tweet.length > 280 ? ' ⚠️' : ''}</div>
-                <div class="post-text">${escapeHtml(tweet)}</div>
-                <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(escapeAttr(tweet))})">📋 Copy</button>
-              </div>
-              ${i < data.posts.length - 1 ? '<div class="thread-connector"></div>' : ''}
-            `).join('')}
+      out.innerHTML = `<div class="section-label" style="margin-top:4px">🧵 X Thread (${data.posts.length} tweets)</div>` +
+        data.posts.map((t, i) => `
+          <div class="post-card thread-card">
+            <div class="post-num">Tweet ${i+1}/${data.posts.length}</div>
+            <div class="char-count ${t.length>280?'over':''}">${t.length}/280${t.length>280?' ⚠️':''}</div>
+            <div class="post-text">${esc(t)}</div>
+            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(t)})">📋 Copy</button>
           </div>
-          <div style="margin-top:14px;">
-            <button class="copy-btn" onclick="copyFullThread(${JSON.stringify(data.posts.map(escapeAttr))})">📋 Copy Full Thread</button>
-          </div>
-        </div>
-      `;
+          ${i < data.posts.length-1 ? '<div class="thread-connector"></div>' : ''}
+        `).join('') +
+        `<button class="copy-btn" style="margin-top:4px" onclick="copyThread(${JSON.stringify(data.posts)})">📋 Copy Full Thread</button>`;
     }
-  } catch (e) {
-    out.innerHTML = '<div class="error">Could not connect to backend.</div>';
+  } catch(e) {
+    out.innerHTML = '<div class="error-msg">Could not connect to backend.</div>';
   } finally {
-    btn.disabled = false;
-    btn.textContent = getGenerateBtnLabel();
+    btn.disabled = false; btn.textContent = getGenLabel();
   }
 }
 
-function copyPost(btn, text) {
+function renderPostCards(posts, label, extra) {
+  return `<div class="section-label" style="margin-top:4px">Generated Posts</div>` +
+    posts.map((p, i) => `
+      <div class="post-card ${extra}">
+        <div class="post-num">${label} ${i+1}</div>
+        <div class="post-text">${esc(p)}</div>
+        <button class="copy-btn" onclick="copyText(this,${JSON.stringify(p)})">📋 Copy</button>
+      </div>`).join('');
+}
+
+/* ══════════════════════════════════
+   VIRAL INTELLIGENCE
+══════════════════════════════════ */
+let allTrends = [];
+let selectedTrend = null;
+
+function scClass(s) { return s>=82?'viral':s>=65?'high':s>=40?'med':'low'; }
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n>=1000000) return (n/1000000).toFixed(1)+'M';
+  if (n>=1000) return (n/1000).toFixed(1)+'K';
+  return String(n);
+}
+
+async function loadTrends(forceRefresh = false) {
+  const list = document.getElementById('trend-list');
+  const countEl = document.getElementById('trend-count');
+  list.innerHTML = '<div class="loader"><span class="spin"></span>Scoring AI trends...</div>';
+  try {
+    const endpoint = forceRefresh ? `${API}/trends/refresh` : `${API}/trends`;
+    const method = forceRefresh ? 'POST' : 'GET';
+    const res = await fetch(endpoint, { method });
+    const data = await res.json();
+    allTrends = data.trends || [];
+    countEl.textContent = `${allTrends.length} scored`;
+    if (!allTrends.length) { list.innerHTML = '<div class="loader" style="color:#4d5e78">No trends found.</div>'; return; }
+    list.innerHTML = allTrends.map((t, i) => `
+      <div class="trend-item" id="ti-${i}" onclick="selectTrend(${i})">
+        <div class="item-top">
+          <span class="score-badge score-${scClass(t.viral_score)}">${t.viral_score}</span>
+          <span class="item-source">${t.source}</span>
+          <span class="item-time ${(t.age_hours||0)<4?'fresh':''}">${t.time_ago||timeAgo(t.created_at)}</span>
+        </div>
+        <div class="item-title">${trunc(t.title||t.text,90)}</div>
+        <div class="item-reason">${t.viral_reason||''}</div>
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="loader" style="color:#fc8181">Backend connect nahin hua.</div>';
+  }
+}
+
+function selectTrend(i) {
+  document.querySelectorAll('.trend-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`ti-${i}`)?.classList.add('active');
+  selectedTrend = allTrends[i];
+  renderTrendDetail();
+}
+
+function renderTrendDetail() {
+  const t = selectedTrend;
+  const sc = scClass(t.viral_score);
+  const bd = t.score_breakdown || {};
+  const bars = [
+    { label: 'Engagement Velocity', key: 'engagement_velocity', max: 30 },
+    { label: 'Source Authority',    key: 'source_authority',    max: 20 },
+    { label: 'Freshness',           key: 'freshness',           max: 20 },
+    { label: 'Brand Fit',           key: 'brand_fit',           max: 20 },
+    { label: 'Content Quality',     key: 'content_quality',     max: 10 },
+  ];
+  const tierColor = sc==='viral'?'#ef4444':sc==='high'?'#22c55e':sc==='med'?'#eab308':'#6b7280';
+
+  document.getElementById('trend-detail').innerHTML = `
+
+    <div class="score-header">
+      <div class="dial dial-${sc}">
+        <div class="dial-number">${t.viral_score}</div>
+        <div class="dial-label">SCORE</div>
+      </div>
+      <div class="score-meta">
+        <div class="score-tier" style="color:${tierColor}">${t.viral_tier||''}</div>
+        <div class="score-reason">${t.viral_reason||''}</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="breakdown-title">Score Breakdown</div>
+      ${bars.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="bar-label">${r.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(((bd[r.key]||0)/r.max)*100)}%"></div></div>
+          <span class="bar-val">${(bd[r.key]||0).toFixed(1)}/${r.max}</span>
+        </div>`).join('')}
+    </div>
+
+    ${t.likes||t.reposts||t.replies ? `
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.likes)}</div><div class="stat-lbl">LIKES</div></div>
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.reposts)}</div><div class="stat-lbl">REPOSTS</div></div>
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.replies)}</div><div class="stat-lbl">REPLIES</div></div>
+      ${t.impressions?`<div class="stat-box"><div class="stat-num">${fmtNum(t.impressions)}</div><div class="stat-lbl">VIEWS</div></div>`:''}
+    </div>` : ''}
+
+    <div class="content-card">
+      <div class="card-label">Content</div>
+      <div class="card-title">${t.title||trunc(t.text,120)}</div>
+      ${t.summary?`<div class="card-summary">${t.summary}</div>`:''}
+      <div class="card-footer">
+        ${t.author_username?`<span class="meta-pill">@${t.author_username}</span>`:''}
+        <span class="meta-pill accent">${t.source}</span>
+        ${t.time_ago?`<span class="meta-pill">${t.time_ago}</span>`:''}
+        ${t.url?`<a href="${t.url}" target="_blank" class="link-btn">Open ↗</a>`:''}
+      </div>
+    </div>
+
+    <div class="opp-box">
+      <div class="opp-title">💡 Opportunity for You</div>
+      <div class="opp-text">${buildOpportunity(t)}</div>
+    </div>
+
+    <button class="rewrite-btn" id="rewrite-btn" onclick="rewritePost()">
+      ✍️ Rewrite This in My Style (English)
+    </button>
+    <div id="rewrite-output"></div>
+  `;
+}
+
+async function rewritePost() {
+  const btn = document.getElementById('rewrite-btn');
+  const out = document.getElementById('rewrite-output');
+  if (!selectedTrend) return;
+  btn.disabled = true; btn.textContent = '⏳ Claude analyzing...';
+  const text = selectedTrend.text || selectedTrend.title + '. ' + (selectedTrend.summary||'');
+  try {
+    const res = await fetch(`${API}/rewrite`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text, author: selectedTrend.author_username||'', likes: selectedTrend.likes||0, reposts: selectedTrend.reposts||0 }),
+    });
+    const data = await res.json();
+    if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail||'Error'}</div>`; return; }
+    const a = data.analysis || {};
+    out.innerHTML = `
+      <div class="rewrite-result">
+        <div class="section-label" style="margin-bottom:10px">🔍 Viral Analysis</div>
+        <div class="analysis-grid">
+          ${a.hook?`<div class="analysis-item"><div class="analysis-key">Hook</div><div class="analysis-val">${a.hook}</div></div>`:''}
+          ${a.style?`<div class="analysis-item"><div class="analysis-key">Tone</div><div class="analysis-val">${a.style}</div></div>`:''}
+          ${a.hashtags?`<div class="analysis-item"><div class="analysis-key">Hashtags</div><div class="analysis-val">${a.hashtags}</div></div>`:''}
+          ${a.cta?`<div class="analysis-item"><div class="analysis-key">CTA</div><div class="analysis-val">${a.cta}</div></div>`:''}
+        </div>
+        ${data.x_tweet?`
+        <div class="rewrite-post">
+          <div class="rewrite-post-label">🐦 X Tweet</div>
+          <div class="rewrite-post-text">${esc(data.x_tweet)}</div>
+          <div style="font-size:10px;color:${data.x_tweet.length>280?'#fc8181':'#4d5e78'};margin-top:6px">${data.x_tweet.length}/280</div>
+          <button class="copy-btn" style="margin-top:8px" onclick="copyText(this,${JSON.stringify(data.x_tweet)})">📋 Copy Tweet</button>
+        </div>`:''}
+        ${data.facebook?`
+        <div class="rewrite-post">
+          <div class="rewrite-post-label">📘 Facebook Post</div>
+          <div class="rewrite-post-text">${esc(data.facebook)}</div>
+          <button class="copy-btn" style="margin-top:8px" onclick="copyText(this,${JSON.stringify(data.facebook)})">📋 Copy Post</button>
+        </div>`:''}
+      </div>`;
+  } catch(e) {
+    out.innerHTML = '<div class="error-msg">Backend connect nahin hua.</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '✍️ Rewrite Again';
+  }
+}
+
+function buildOpportunity(t) {
+  const s = t.viral_score;
+  if (s>=82) return `This trend is very powerful. Post immediately — it's trending ${t.time_ago||'now'}. Add your unique angle and perspective. Perfect candidate for a viral thread.`;
+  if (s>=65) return `Strong opportunity. This content is relevant to your brand. Create an educational post or thread — verify the facts first, then add your insight.`;
+  if (s>=40) return `Medium relevance. You can post but don't invest too much effort. One simple informative tweet is enough.`;
+  return `Low priority. This trend isn't very suitable for your personal brand. Skip it or simply share without much additional effort.`;
+}
+
+/* ══ UTILS ══ */
+function copyText(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✅ Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.textContent = '📋 Copy';
-      btn.classList.remove('copied');
-    }, 2000);
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
   });
 }
-
-function copyFullThread(tweets) {
-  const text = tweets.join('\n\n---\n\n');
-  navigator.clipboard.writeText(text).then(() => {
-    event.target.textContent = '✅ Thread Copied!';
-    setTimeout(() => { event.target.textContent = '📋 Copy Full Thread'; }, 2000);
-  });
+function copyThread(tweets) {
+  copyText(event.target, tweets.join('\n\n---\n\n'));
+}
+function esc(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function trunc(s, n) { if (!s) return ''; return s.length>n ? s.slice(0,n)+'…' : s; }
+function timeAgo(iso) {
+  if (!iso) return '';
+  const d = (Date.now()-new Date(iso))/1000;
+  if (d<3600) return `${Math.floor(d/60)} min ago`;
+  if (d<86400) return `${Math.floor(d/3600)} hr ago`;
+  return `${Math.floor(d/86400)} day ago`;
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function escapeAttr(str) {
-  return str;
-}
-
+/* ══ INIT ══ */
 loadNews();
 </script>
 </body>
