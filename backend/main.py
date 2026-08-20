@@ -25,18 +25,13 @@ app.add_middleware(
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
-
 @app.get("/")
 def root():
     return FileResponse(FRONTEND_DIR / "index.html")
 
-
 @app.get("/trends.html")
 def trends_page():
     return FileResponse(FRONTEND_DIR / "trends.html")
-
-
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
 
 _news_cache: dict = {"articles": [], "fetched_at": 0}
 _trend_cache: dict = {"trends": [], "fetched_at": 0}
@@ -90,3 +85,5 @@ def generate(req: GenerateRequest):
 
     posts = generate_posts(req.headline, req.summary, req.tone)
     return {"posts": posts}
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
