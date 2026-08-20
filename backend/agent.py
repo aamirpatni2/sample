@@ -5,23 +5,21 @@ client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 # ── Facebook ───────────────────────────────────────────────────────────────
 
-FB_SYSTEM = """You are a Facebook content writer specializing in AI news for a Pakistani audience.
-Write engaging Facebook posts in a mix of English and Urdu (Roman Urdu / Hinglish style).
+FB_SYSTEM = """You are a Facebook content writer specializing in AI news.
+Write engaging Facebook posts in clear English.
 Use relevant emojis and popular AI hashtags.
 Keep posts between 100-200 words each.
 Make the content feel authentic, not like a press release."""
 
 # ── X (Twitter) ────────────────────────────────────────────────────────────
 
-TWEET_SYSTEM = """You are a viral X (Twitter) content writer for Aamir, a Pakistani AI educator with a tech-savvy audience.
-Write punchy, engaging tweets that get likes and retweets.
-Mix English and Roman Urdu naturally (Hinglish style).
+TWEET_SYSTEM = """You are a viral X (Twitter) content writer for Aamir, an AI educator.
+Write punchy, engaging tweets in clear English that get likes and retweets.
 Use emojis strategically — not too many.
 Always include 2-3 relevant hashtags at the end."""
 
-THREAD_SYSTEM = """You are a viral X (Twitter) thread writer for Aamir, a Pakistani AI educator.
-Write compelling threads that educate and engage a Pakistani tech audience.
-Mix English and Roman Urdu naturally (Hinglish style).
+THREAD_SYSTEM = """You are a viral X (Twitter) thread writer for Aamir, an AI educator.
+Write compelling threads in clear English that educate and engage a tech audience.
 Each tweet in the thread should flow naturally to the next.
 Use emojis strategically. Include hashtags only in the last tweet."""
 
@@ -104,9 +102,9 @@ Your task:
    - CTA (call to action)
    - Tone/style
 
-2. REWRITE for Aamir (Pakistani AI educator, Hinglish style):
-   - X Tweet version (max 280 chars) — same hook style, Hinglish
-   - Facebook version (100-150 words) — same energy, Hinglish with emojis
+2. REWRITE for Aamir (AI educator, clear English):
+   - X Tweet version (max 280 chars) — same hook style, English
+   - Facebook version (100-150 words) — same energy, English with emojis
 
 Format your response EXACTLY like this:
 HOOK: [what the hook technique was]
@@ -121,7 +119,7 @@ STYLE: [tone description]
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=800,
-        system="You are a viral content analyst and rewriter for Aamir, a Pakistani AI educator. You analyze what makes posts go viral and recreate that magic in Hinglish (English + Roman Urdu mix) for a Pakistani tech audience.",
+        system="You are a viral content analyst and rewriter for Aamir, an AI educator. You analyze what makes posts go viral and recreate that magic in clear English for a tech-savvy audience.",
         messages=[{"role": "user", "content": analysis_prompt}],
     )
 
