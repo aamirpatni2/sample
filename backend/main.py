@@ -11,7 +11,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 from news_fetcher import fetch_ai_news
-from agent import generate_posts, generate_tweet, generate_thread
+from agent import generate_posts, generate_tweet, generate_thread, rewrite_viral_post
 from trend_fetcher import fetch_and_score_trends
 
 app = FastAPI(title="AI Viral Content Intelligence Agent")
@@ -96,6 +96,21 @@ def generate_thread_endpoint(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
     thread = generate_thread(req.headline, req.summary, req.tone)
     return {"posts": thread}
+
+
+class RewriteRequest(BaseModel):
+    text: str
+    author: str = ""
+    likes: int = 0
+    reposts: int = 0
+
+
+@app.post("/rewrite")
+def rewrite(req: RewriteRequest):
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="text is required")
+    result = rewrite_viral_post(req.text, "x", req.author, req.likes, req.reposts)
+    return result
 
 
 # Static files mount must be LAST — after all API routes

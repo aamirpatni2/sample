@@ -86,6 +86,66 @@ Do not number them."""
     return parts[:3]
 
 
+def rewrite_viral_post(original_text: str, platform: str, author: str, likes: int, reposts: int) -> dict:
+    """Analyze a viral post and rewrite it in Aamir's style for both X and Facebook."""
+
+    analysis_prompt = f"""This tweet/post went viral on X (Twitter):
+
+---
+{original_text}
+---
+
+Author: @{author} | Likes: {likes} | Reposts: {reposts}
+
+Your task:
+1. ANALYZE: What makes this post viral? Identify:
+   - Hook (first line strategy)
+   - Key hashtags used
+   - CTA (call to action)
+   - Tone/style
+
+2. REWRITE for Aamir (Pakistani AI educator, Hinglish style):
+   - X Tweet version (max 280 chars) — same hook style, Hinglish
+   - Facebook version (100-150 words) — same energy, Hinglish with emojis
+
+Format your response EXACTLY like this:
+HOOK: [what the hook technique was]
+HASHTAGS: [hashtags from original]
+CTA: [what CTA was used]
+STYLE: [tone description]
+---XTWEET---
+[rewritten tweet in Hinglish, max 280 chars]
+---FACEBOOK---
+[rewritten Facebook post in Hinglish]"""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=800,
+        system="You are a viral content analyst and rewriter for Aamir, a Pakistani AI educator. You analyze what makes posts go viral and recreate that magic in Hinglish (English + Roman Urdu mix) for a Pakistani tech audience.",
+        messages=[{"role": "user", "content": analysis_prompt}],
+    )
+
+    raw = message.content[0].text
+
+    analysis = {}
+    for field in ["HOOK", "HASHTAGS", "CTA", "STYLE"]:
+        for line in raw.split("\n"):
+            if line.startswith(f"{field}:"):
+                analysis[field.lower()] = line.replace(f"{field}:", "").strip()
+
+    tweet = ""
+    fb = ""
+    if "---XTWEET---" in raw and "---FACEBOOK---" in raw:
+        tweet = raw.split("---XTWEET---")[1].split("---FACEBOOK---")[0].strip()
+        fb = raw.split("---FACEBOOK---")[1].strip()
+
+    return {
+        "analysis": analysis,
+        "x_tweet": tweet,
+        "facebook": fb,
+    }
+
+
 def generate_thread(headline: str, summary: str, tone: str) -> list[str]:
     tone_note = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["informative"])
 

@@ -167,6 +167,32 @@
     border-radius: 6px; font-size: 11px; font-family: monospace; cursor: pointer; transition: all 0.12s;
   }
   .btn-refresh:hover { border-color: #f0a500; color: #f0a500; }
+
+  /* Rewrite Button */
+  .rewrite-btn {
+    padding: 10px 20px; background: linear-gradient(135deg, #7c3aed, #1da1f2);
+    color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s; width: 100%;
+  }
+  .rewrite-btn:hover { opacity: 0.9; }
+  .rewrite-btn:disabled { background: #2d3748; cursor: not-allowed; }
+
+  /* Rewrite Result */
+  .rewrite-result { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+  .rewrite-section-title { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+  .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .analysis-item { background: #111927; border-radius: 8px; padding: 10px; }
+  .analysis-key { font-size: 10px; color: #4d5e78; font-family: monospace; text-transform: uppercase; margin-bottom: 4px; }
+  .analysis-val { font-size: 12px; color: #a78bfa; line-height: 1.5; }
+  .rewrite-post { background: #111927; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .rewrite-post-label { font-size: 10px; color: #677492; font-family: monospace; text-transform: uppercase; margin-bottom: 8px; }
+  .rewrite-post-text { font-size: 13px; color: #dce4f0; line-height: 1.7; white-space: pre-wrap; }
+  .copy-small {
+    margin-top: 8px; padding: 4px 12px; background: transparent;
+    border: 1px solid #1e2735; color: #677492; border-radius: 6px;
+    font-size: 11px; cursor: pointer; transition: all 0.15s;
+  }
+  .copy-small:hover { border-color: #48bb78; color: #48bb78; }
 </style>
 </head>
 <body>
@@ -177,8 +203,8 @@
     <span class="brand-name">AI Viral Intelligence</span>
   </div>
   <div class="header-links">
-    <a href="index.html" class="nav-link">News Feed</a>
-    <a href="trends.html" class="nav-link active">Trend Intelligence</a>
+    <a href="/" class="nav-link">News Feed</a>
+    <a href="/trends.html" class="nav-link active">Trend Intelligence</a>
   </div>
 </header>
 
@@ -345,6 +371,18 @@ function renderDetail() {
       <div class="opp-text">${opportunity}</div>
     </div>
 
+    ${t.source === 'X (Twitter)' ? `
+    <button class="rewrite-btn" id="rewrite-btn" onclick="rewritePost()">
+      ✍️ Is Viral Post Ko Mere Style Mein Rewrite Karo
+    </button>
+    <div id="rewrite-output"></div>
+    ` : `
+    <button class="rewrite-btn" id="rewrite-btn" onclick="rewritePost()">
+      ✍️ Is News Ko Viral Post Mein Rewrite Karo
+    </button>
+    <div id="rewrite-output"></div>
+    `}
+
   `;
 }
 
@@ -375,6 +413,81 @@ function timeAgo(isoStr) {
 function truncate(s, n) {
   if (!s) return '';
   return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+async function rewritePost() {
+  const btn = document.getElementById('rewrite-btn');
+  const out = document.getElementById('rewrite-output');
+  if (!selected) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Claude analyze kar raha hai...';
+  out.innerHTML = '';
+
+  const text = selected.text || selected.title + '. ' + (selected.summary || '');
+
+  try {
+    const res = await fetch(`${API}/rewrite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: text,
+        author: selected.author_username || '',
+        likes: selected.likes || 0,
+        reposts: selected.reposts || 0,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      out.innerHTML = `<div style="color:#fc8181;padding:10px">${data.detail || 'Error'}</div>`;
+      return;
+    }
+
+    const a = data.analysis || {};
+    out.innerHTML = `
+      <div class="rewrite-result" style="margin-top:14px">
+        <div class="rewrite-section-title">🔍 Viral Analysis</div>
+        <div class="analysis-grid">
+          ${a.hook ? `<div class="analysis-item"><div class="analysis-key">Hook Strategy</div><div class="analysis-val">${a.hook}</div></div>` : ''}
+          ${a.style ? `<div class="analysis-item"><div class="analysis-key">Tone/Style</div><div class="analysis-val">${a.style}</div></div>` : ''}
+          ${a.hashtags ? `<div class="analysis-item"><div class="analysis-key">Hashtags</div><div class="analysis-val">${a.hashtags}</div></div>` : ''}
+          ${a.cta ? `<div class="analysis-item"><div class="analysis-key">CTA</div><div class="analysis-val">${a.cta}</div></div>` : ''}
+        </div>
+
+        ${data.x_tweet ? `
+        <div class="rewrite-post">
+          <div class="rewrite-post-label">🐦 X Tweet (Aapke Style Mein)</div>
+          <div class="rewrite-post-text">${escHtml(data.x_tweet)}</div>
+          <div style="font-size:10px;color:${data.x_tweet.length>280?'#fc8181':'#4d5e78'};margin-top:6px">${data.x_tweet.length}/280 chars</div>
+          <button class="copy-small" onclick="copyText(this, ${JSON.stringify(data.x_tweet)})">📋 Copy Tweet</button>
+        </div>` : ''}
+
+        ${data.facebook ? `
+        <div class="rewrite-post">
+          <div class="rewrite-post-label">📘 Facebook Post (Aapke Style Mein)</div>
+          <div class="rewrite-post-text">${escHtml(data.facebook)}</div>
+          <button class="copy-small" onclick="copyText(this, ${JSON.stringify(data.facebook)})">📋 Copy Post</button>
+        </div>` : ''}
+      </div>
+    `;
+  } catch(e) {
+    out.innerHTML = `<div style="color:#fc8181;padding:10px">Backend se connect nahi ho saka.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✍️ Dobara Rewrite Karo';
+  }
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = btn.textContent.includes('Tweet') ? '📋 Copy Tweet' : '📋 Copy Post'; }, 2000);
+  });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 loadTrends();
