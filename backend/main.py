@@ -9,8 +9,9 @@ load_dotenv()
 
 from news_fetcher import fetch_ai_news
 from agent import generate_posts
+from trend_fetcher import fetch_and_score_trends
 
-app = FastAPI(title="AI News Content Agent")
+app = FastAPI(title="AI Viral Content Intelligence Agent")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,24 +20,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_cache: dict = {"articles": [], "fetched_at": 0}
+_news_cache: dict = {"articles": [], "fetched_at": 0}
+_trend_cache: dict = {"trends": [], "fetched_at": 0}
 CACHE_TTL = 1800  # 30 minutes
 
 
 @app.get("/news")
 def get_news():
     now = time.time()
-    if now - _cache["fetched_at"] > CACHE_TTL or not _cache["articles"]:
-        _cache["articles"] = fetch_ai_news()
-        _cache["fetched_at"] = now
-    return {"articles": _cache["articles"], "count": len(_cache["articles"])}
+    if now - _news_cache["fetched_at"] > CACHE_TTL or not _news_cache["articles"]:
+        _news_cache["articles"] = fetch_ai_news()
+        _news_cache["fetched_at"] = now
+    return {"articles": _news_cache["articles"], "count": len(_news_cache["articles"])}
 
 
 @app.post("/news/refresh")
 def refresh_news():
-    _cache["articles"] = fetch_ai_news()
-    _cache["fetched_at"] = time.time()
-    return {"articles": _cache["articles"], "count": len(_cache["articles"])}
+    _news_cache["articles"] = fetch_ai_news()
+    _news_cache["fetched_at"] = time.time()
+    return {"articles": _news_cache["articles"], "count": len(_news_cache["articles"])}
+
+
+@app.get("/trends")
+def get_trends():
+    now = time.time()
+    if now - _trend_cache["fetched_at"] > CACHE_TTL or not _trend_cache["trends"]:
+        _trend_cache["trends"] = fetch_and_score_trends()
+        _trend_cache["fetched_at"] = now
+    return {"trends": _trend_cache["trends"], "count": len(_trend_cache["trends"])}
+
+
+@app.post("/trends/refresh")
+def refresh_trends():
+    _trend_cache["trends"] = fetch_and_score_trends()
+    _trend_cache["fetched_at"] = time.time()
+    return {"trends": _trend_cache["trends"], "count": len(_trend_cache["trends"])}
 
 
 class GenerateRequest(BaseModel):

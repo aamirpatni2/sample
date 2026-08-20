@@ -18,6 +18,9 @@
   }
   header h1 { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
   header span { font-size: 0.8rem; color: #718096; }
+  .nav-link { padding: 5px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; color: #718096; transition: all 0.12s; }
+  .nav-link:hover { background: #1a2133; color: #e2e8f0; }
+  .nav-link.active { background: #1a2133; color: #a78bfa; }
 
   .layout { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - 57px); }
 
@@ -173,7 +176,10 @@
 
 <header>
   <h1>🤖 AI News Agent</h1>
-  <span>Fresh AI news • Last 24 hours only</span>
+  <div style="display:flex;gap:4px;align-items:center">
+    <a href="index.html" class="nav-link active">News Feed</a>
+    <a href="trends.html" class="nav-link">Trend Intelligence</a>
+  </div>
 </header>
 
 <div class="layout">

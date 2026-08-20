@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Viral Intelligence</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #080b12; color: #dce4f0; min-height: 100vh; }
+
+  /* Header */
+  header {
+    background: #0d1117;
+    border-bottom: 1px solid #1e2735;
+    padding: 0 20px;
+    height: 54px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { font-size: 18px; }
+  .brand-name { font-size: 13px; font-family: monospace; color: #a78bfa; font-weight: 600; letter-spacing: 0.03em; }
+  .header-links { display: flex; gap: 4px; }
+  .nav-link {
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; text-decoration: none;
+    color: #677492; transition: all 0.12s;
+  }
+  .nav-link:hover { background: #1a2133; color: #dce4f0; }
+  .nav-link.active { background: #1a2133; color: #a78bfa; }
+
+  /* Layout */
+  .shell { display: grid; grid-template-columns: 400px 1fr; height: calc(100vh - 54px); }
+
+  /* Left: Trend Feed */
+  .feed { border-right: 1px solid #1e2735; display: flex; flex-direction: column; background: #0d1117; }
+  .feed-top {
+    padding: 12px 16px; border-bottom: 1px solid #1e2735;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .feed-label { font-size: 10px; font-family: monospace; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; }
+  .feed-count { font-size: 11px; font-family: monospace; color: #f0a500; background: rgba(240,165,0,0.1); padding: 2px 8px; border-radius: 20px; }
+
+  .trend-list { overflow-y: auto; flex: 1; }
+  .trend-list::-webkit-scrollbar { width: 3px; }
+  .trend-list::-webkit-scrollbar-thumb { background: #1e2735; }
+
+  /* Trend Item */
+  .trend-item {
+    padding: 12px 16px; border-bottom: 1px solid #111927;
+    cursor: pointer; transition: background 0.1s; position: relative;
+  }
+  .trend-item::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: transparent; transition: background 0.1s;
+  }
+  .trend-item:hover { background: #111927; }
+  .trend-item:hover::before { background: #2d3a52; }
+  .trend-item.active { background: #111927; }
+  .trend-item.active::before { background: #f0a500; }
+
+  .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .score-badge {
+    font-family: monospace; font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+  }
+  .score-high   { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .score-viral  { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .score-med    { background: rgba(234,179,8,0.15);  color: #eab308; }
+  .score-low    { background: rgba(107,114,128,0.15); color: #6b7280; }
+
+  .item-source { font-family: monospace; font-size: 10px; color: #4d5e78; flex: 1; }
+  .item-time   { font-family: monospace; font-size: 10px; color: #4d5e78; }
+  .item-time.fresh { color: #22c55e; }
+
+  .item-title { font-size: 13px; line-height: 1.5; color: #c8d6e8; margin-bottom: 5px; }
+  .item-reason { font-size: 11px; color: #4d5e78; font-style: italic; }
+
+  /* Right: Detail */
+  .detail { display: flex; flex-direction: column; overflow: hidden; background: #080b12; }
+  .detail-inner { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .detail-inner::-webkit-scrollbar { width: 3px; }
+  .detail-inner::-webkit-scrollbar-thumb { background: #1e2735; }
+
+  .placeholder {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px; color: #2d3a52; text-align: center; padding: 40px;
+  }
+  .placeholder .icon { font-size: 42px; opacity: 0.4; }
+  .placeholder p { font-size: 14px; line-height: 1.6; }
+
+  /* Score Dial */
+  .score-header {
+    background: #0d1117; border: 1px solid #1e2735; border-radius: 12px;
+    padding: 20px; display: flex; align-items: center; gap: 20px;
+  }
+  .dial {
+    width: 80px; height: 80px; flex-shrink: 0;
+    border-radius: 50%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border: 3px solid;
+  }
+  .dial-number { font-size: 22px; font-weight: 700; font-family: monospace; line-height: 1; }
+  .dial-label  { font-size: 9px; color: #677492; letter-spacing: 0.05em; margin-top: 2px; }
+  .dial-viral  { border-color: #ef4444; color: #ef4444; }
+  .dial-high   { border-color: #22c55e; color: #22c55e; }
+  .dial-med    { border-color: #eab308; color: #eab308; }
+  .dial-low    { border-color: #4d5e78; color: #4d5e78; }
+
+  .score-meta { flex: 1; }
+  .score-tier { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .score-reason { font-size: 12px; color: #677492; line-height: 1.5; }
+
+  /* Score breakdown */
+  .breakdown { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+  .breakdown-title { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .bar-row { display: flex; align-items: center; gap-8: 0; margin-bottom: 8px; }
+  .bar-label { font-size: 11px; color: #677492; width: 130px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 6px; background: #1e2735; border-radius: 3px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 3px; background: #f0a500; transition: width 0.4s ease; }
+  .bar-val   { font-family: monospace; font-size: 11px; color: #a78bfa; width: 36px; text-align: right; }
+
+  /* Content card */
+  .content-card {
+    background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px;
+  }
+  .card-label { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+  .card-title { font-size: 15px; font-weight: 600; color: #dce4f0; line-height: 1.5; margin-bottom: 8px; }
+  .card-summary { font-size: 12px; color: #677492; line-height: 1.65; margin-bottom: 12px; }
+  .card-footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .meta-pill {
+    font-family: monospace; font-size: 10px; background: #111927; color: #677492;
+    padding: 3px 8px; border-radius: 12px; border: 1px solid #1e2735;
+  }
+  .meta-pill.accent { color: #f0a500; border-color: rgba(240,165,0,0.2); background: rgba(240,165,0,0.05); }
+
+  .link-btn {
+    margin-left: auto; font-size: 11px; color: #a78bfa; text-decoration: none;
+    padding: 4px 10px; border: 1px solid #2d2060; border-radius: 6px;
+    font-family: monospace; transition: all 0.12s;
+  }
+  .link-btn:hover { background: #2d2060; }
+
+  /* Engagement stats */
+  .stats-row { display: flex; gap: 12px; }
+  .stat-box {
+    flex: 1; background: #0d1117; border: 1px solid #1e2735; border-radius: 10px;
+    padding: 12px; text-align: center;
+  }
+  .stat-num  { font-size: 20px; font-weight: 700; font-family: monospace; color: #dce4f0; }
+  .stat-lbl  { font-size: 10px; color: #4d5e78; font-family: monospace; letter-spacing: 0.04em; margin-top: 2px; }
+
+  /* Opportunity box */
+  .opp-box {
+    background: rgba(240,165,0,0.05); border: 1px solid rgba(240,165,0,0.2);
+    border-radius: 12px; padding: 16px;
+  }
+  .opp-title { font-size: 12px; font-weight: 600; color: #f0a500; margin-bottom: 8px; }
+  .opp-text  { font-size: 12px; color: #8b9ab3; line-height: 1.65; }
+
+  /* Loader */
+  .loader { display: flex; align-items: center; gap: 10px; padding: 20px; color: #677492; font-size: 13px; }
+  .spin { width: 16px; height: 16px; border: 2px solid #1e2735; border-top-color: #f0a500; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-refresh {
+    padding: 5px 12px; background: transparent; border: 1px solid #1e2735; color: #677492;
+    border-radius: 6px; font-size: 11px; font-family: monospace; cursor: pointer; transition: all 0.12s;
+  }
+  .btn-refresh:hover { border-color: #f0a500; color: #f0a500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-icon">📡</span>
+    <span class="brand-name">AI Viral Intelligence</span>
+  </div>
+  <div class="header-links">
+    <a href="index.html" class="nav-link">News Feed</a>
+    <a href="trends.html" class="nav-link active">Trend Intelligence</a>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- LEFT: Trend List -->
+  <div class="feed">
+    <div class="feed-top">
+      <span class="feed-label">Scored Trends</span>
+      <span style="display:flex;gap:8px;align-items:center">
+        <span class="feed-count" id="trend-count">loading...</span>
+        <button class="btn-refresh" onclick="loadTrends(true)">↻</button>
+      </span>
+    </div>
+    <div class="trend-list" id="trend-list">
+      <div class="loader"><div class="spin"></div>Scoring AI trends...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Detail -->
+  <div class="detail">
+    <div class="detail-inner" id="detail">
+      <div class="placeholder">
+        <div class="icon">📊</div>
+        <p>Koi trend select karo<br/>Viral score aur analysis dekhne ke liye</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let selected = null;
+let allTrends = [];
+
+function scoreClass(s) {
+  if (s >= 82) return 'viral';
+  if (s >= 65) return 'high';
+  if (s >= 40) return 'med';
+  return 'low';
+}
+
+function scoreBadgeClass(s) {
+  const c = scoreClass(s);
+  return c === 'viral' ? 'score-viral' : c === 'high' ? 'score-high' : c === 'med' ? 'score-med' : 'score-low';
+}
+
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return String(n);
+}
+
+async function loadTrends(forceRefresh = false) {
+  const list = document.getElementById('trend-list');
+  const countEl = document.getElementById('trend-count');
+  list.innerHTML = '<div class="loader"><div class="spin"></div>Scoring AI trends...</div>';
+
+  try {
+    const endpoint = forceRefresh ? `${API}/trends/refresh` : `${API}/trends`;
+    const method   = forceRefresh ? 'POST' : 'GET';
+    const res = await fetch(endpoint, { method });
+    const data = await res.json();
+    allTrends = data.trends || [];
+    countEl.textContent = `${allTrends.length} scored`;
+
+    if (!allTrends.length) {
+      list.innerHTML = '<div class="loader" style="color:#ef4444">Koi trends nahi mili. Server check karo.</div>';
+      return;
+    }
+
+    list.innerHTML = allTrends.map((t, i) => `
+      <div class="trend-item" id="ti-${i}" onclick="selectTrend(${i})">
+        <div class="item-top">
+          <span class="score-badge ${scoreBadgeClass(t.viral_score)}">${t.viral_score}</span>
+          <span class="item-source">${t.source}</span>
+          <span class="item-time ${(t.age_hours||0) < 4 ? 'fresh' : ''}">${t.time_ago || timeAgo(t.created_at)}</span>
+        </div>
+        <div class="item-title">${truncate(t.title || t.text, 90)}</div>
+        <div class="item-reason">${t.viral_reason || ''}</div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    list.innerHTML = '<div class="loader" style="color:#ef4444">Server se connect nahi ho saka. Backend chala rahe ho?</div>';
+    countEl.textContent = 'error';
+  }
+}
+
+function selectTrend(i) {
+  document.querySelectorAll('.trend-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`ti-${i}`)?.classList.add('active');
+  selected = allTrends[i];
+  renderDetail();
+}
+
+function renderDetail() {
+  const t = selected;
+  const sc = scoreClass(t.viral_score);
+  const dialClass = `dial-${sc}`;
+  const bd = t.score_breakdown || {};
+  const maxScore = { engagement_velocity: 30, source_authority: 20, freshness: 20, brand_fit: 20, content_quality: 10 };
+
+  const barRows = [
+    { label: 'Engagement Velocity', key: 'engagement_velocity', max: 30 },
+    { label: 'Source Authority',    key: 'source_authority',    max: 20 },
+    { label: 'Freshness',           key: 'freshness',           max: 20 },
+    { label: 'Brand Fit (Aamir)',   key: 'brand_fit',           max: 20 },
+    { label: 'Content Quality',     key: 'content_quality',     max: 10 },
+  ];
+
+  const opportunity = buildOpportunity(t);
+
+  document.getElementById('detail').innerHTML = `
+
+    <div class="score-header">
+      <div class="dial ${dialClass}">
+        <div class="dial-number">${t.viral_score}</div>
+        <div class="dial-label">SCORE</div>
+      </div>
+      <div class="score-meta">
+        <div class="score-tier" style="color: ${sc==='viral'?'#ef4444':sc==='high'?'#22c55e':sc==='med'?'#eab308':'#6b7280'}">${t.viral_tier || ''}</div>
+        <div class="score-reason">${t.viral_reason || ''}</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="breakdown-title">Score Breakdown</div>
+      ${barRows.map(r => `
+        <div class="bar-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="bar-label">${r.label}</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.round(((bd[r.key]||0)/r.max)*100)}%"></div>
+          </div>
+          <span class="bar-val">${(bd[r.key]||0).toFixed(1)}/${r.max}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    ${t.likes || t.reposts || t.replies || t.impressions ? `
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.likes)}</div><div class="stat-lbl">LIKES</div></div>
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.reposts)}</div><div class="stat-lbl">REPOSTS</div></div>
+      <div class="stat-box"><div class="stat-num">${fmtNum(t.replies)}</div><div class="stat-lbl">REPLIES</div></div>
+      ${t.impressions ? `<div class="stat-box"><div class="stat-num">${fmtNum(t.impressions)}</div><div class="stat-lbl">VIEWS</div></div>` : ''}
+    </div>` : ''}
+
+    <div class="content-card">
+      <div class="card-label">Content</div>
+      <div class="card-title">${t.title || truncate(t.text, 120)}</div>
+      ${t.summary ? `<div class="card-summary">${t.summary}</div>` : ''}
+      <div class="card-footer">
+        ${t.author_name ? `<span class="meta-pill">@${t.author_username || t.author_name}</span>` : ''}
+        <span class="meta-pill accent">${t.source}</span>
+        ${t.time_ago ? `<span class="meta-pill">${t.time_ago}</span>` : ''}
+        ${t.url ? `<a href="${t.url}" target="_blank" class="link-btn">Open ↗</a>` : ''}
+      </div>
+    </div>
+
+    <div class="opp-box">
+      <div class="opp-title">💡 Opportunity for Aamir</div>
+      <div class="opp-text">${opportunity}</div>
+    </div>
+
+  `;
+}
+
+function buildOpportunity(t) {
+  const score = t.viral_score;
+  const text = (t.title || t.text || '').toLowerCase();
+
+  if (score >= 82) {
+    return `Yeh trend bohat powerful hai. Is par immediately post karo — ${t.time_ago || 'abhi'} se trend ho raha hai. Apna angle: Pakistani/educational perspective add karo. Viral thread ka perfect candidate hai.`;
+  }
+  if (score >= 65) {
+    return `Strong opportunity. Yeh content aapke brand ke liye relevant hai. Ek educational post ya thread banao — facts verify karo pehle, phir apna insight add karo.`;
+  }
+  if (score >= 40) {
+    return `Medium relevance. Post kar sakte ho lekin zyada effort mat lagao. Ek simple informative tweet kaafi hoga. Koi breaking angle nahi hai is mein.`;
+  }
+  return `Low priority. Yeh trend aapke personal brand ke liye khaas suitable nahi. Skip karo ya simply reshare karo bina zyada effort ke.`;
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return '';
+  const diff = (Date.now() - new Date(isoStr)) / 1000;
+  if (diff < 3600) return `${Math.floor(diff/60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} hr ago`;
+  return `${Math.floor(diff/86400)} day ago`;
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+loadTrends();
+</script>
+</body>
+</html>
