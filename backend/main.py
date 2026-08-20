@@ -11,8 +11,12 @@ from pydantic import BaseModel
 load_dotenv()
 
 from news_fetcher import fetch_ai_news
-from agent import generate_posts, generate_tweet, generate_thread, rewrite_viral_post
+from agent import (
+    generate_posts, generate_tweet, generate_thread, rewrite_viral_post,
+    generate_linkedin, generate_instagram, generate_tiktok_idea, generate_youtube_idea,
+)
 from trend_fetcher import fetch_and_score_trends
+from google_sheets import fetch_morning_plan
 
 app = FastAPI(title="AI Viral Content Intelligence Agent")
 
@@ -96,6 +100,58 @@ def generate_thread_endpoint(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
     thread = generate_thread(req.headline, req.summary, req.tone)
     return {"posts": thread}
+
+
+@app.post("/generate/linkedin")
+def generate_linkedin_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_linkedin(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.post("/generate/instagram")
+def generate_instagram_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_instagram(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.post("/generate/tiktok")
+def generate_tiktok_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_tiktok_idea(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.post("/generate/youtube")
+def generate_youtube_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_youtube_idea(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.get("/morning-plan")
+def get_morning_plan(csv_url: str = ""):
+    if not csv_url:
+        raise HTTPException(status_code=400, detail="csv_url query parameter is required")
+    try:
+        plan = fetch_morning_plan(csv_url)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    from datetime import date
+    return {"plan": plan, "date": date.today().isoformat(), "count": len(plan)}
 
 
 class RewriteRequest(BaseModel):
