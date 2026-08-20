@@ -323,3 +323,63 @@ Rules:
     raw = message.content[0].text
     parts = [p.strip() for p in raw.split("---TWEET---") if p.strip()]
     return parts[:6]
+
+
+# ── YouTube Full Video ──────────────────────────────────────────────────────
+
+YOUTUBE_VIDEO_SYSTEM = """You are a YouTube video script planner for Aamir, an AI educator who records videos himself.
+Write video outlines in clear English for 5-10 minute videos.
+Format EXACTLY like this for each idea:
+TITLE: (SEO-friendly, curiosity gap, under 70 chars)
+THUMBNAIL TEXT: (bold 3-5 words for thumbnail)
+HOOK (0-30 sec): (opening script — make viewers stay)
+OUTLINE:
+1. [Point name] (1-2 min): what to cover
+2. [Point name] (1-2 min): what to cover
+3. [Point name] (1-2 min): what to cover
+4. [Point name] (1-2 min): what to cover
+END CTA: (subscribe/comment/like prompt, last 20 sec)
+TAGS: (5-7 YouTube search tags)"""
+
+
+def generate_youtube_video(headline: str, summary: str, tone: str) -> list[str]:
+    tone_note = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["informative"])
+
+    prompt = f"""AI News Headline: {headline}
+
+Summary: {summary}
+
+Tone instruction: {tone_note}
+
+Write exactly 2 YouTube full video ideas (5-10 min) that Aamir can record himself about this AI news.
+Follow the exact format in the system prompt.
+Separate each idea with the delimiter: ---VIDEO---
+Do not number them."""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1600,
+        system=YOUTUBE_VIDEO_SYSTEM,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text
+    parts = [p.strip() for p in raw.split("---VIDEO---") if p.strip()]
+    return parts[:2]
+
+
+def generate_single_tweet(headline: str, summary: str) -> str:
+    """Generate one best viral tweet — used by auto-suggest for speed."""
+    prompt = f"""AI News Headline: {headline}
+
+Summary: {summary}
+
+Write ONE viral tweet (max 280 chars). Hook in first line. End with 2-3 hashtags. No numbering."""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=150,
+        system=TWEET_SYSTEM,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return message.content[0].text.strip()

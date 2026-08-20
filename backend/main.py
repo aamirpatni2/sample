@@ -14,6 +14,7 @@ from news_fetcher import fetch_ai_news
 from agent import (
     generate_posts, generate_tweet, generate_thread, rewrite_viral_post,
     generate_linkedin, generate_instagram, generate_tiktok_idea, generate_youtube_idea,
+    generate_youtube_video, generate_single_tweet,
 )
 from trend_fetcher import fetch_and_score_trends
 from google_sheets import fetch_morning_plan
@@ -140,6 +141,56 @@ def generate_youtube_endpoint(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
     posts = generate_youtube_idea(req.headline, req.summary, req.tone)
     return {"posts": posts}
+
+
+@app.post("/generate/youtube-video")
+def generate_youtube_video_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_youtube_video(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.post("/auto-suggest")
+def auto_suggest():
+    """Fetch top 5 viral trends and auto-generate one tweet each."""
+    import concurrent.futures
+
+    # Use cached trends if available, otherwise fetch fresh
+    now = time.time()
+    if now - _trend_cache["fetched_at"] > CACHE_TTL or not _trend_cache["trends"]:
+        _trend_cache["trends"] = fetch_and_score_trends()
+        _trend_cache["fetched_at"] = now
+
+    trends = sorted(_trend_cache["trends"], key=lambda t: t.get("viral_score", 0), reverse=True)[:5]
+
+    def gen_tweet(t):
+        headline = t.get("title") or t.get("text", "")[:200]
+        summary = t.get("summary", "")
+        try:
+            tweet = generate_single_tweet(headline, summary)
+        except Exception:
+            tweet = ""
+        return {
+            "viral_score": t.get("viral_score", 0),
+            "viral_tier": t.get("viral_tier", ""),
+            "viral_reason": t.get("viral_reason", ""),
+            "title": t.get("title", ""),
+            "text": t.get("text", ""),
+            "summary": t.get("summary", ""),
+            "source": t.get("source", ""),
+            "time_ago": t.get("time_ago", ""),
+            "url": t.get("url", ""),
+            "author_username": t.get("author_username", ""),
+            "tweet": tweet,
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(gen_tweet, trends))
+
+    return {"suggestions": results, "count": len(results)}
 
 
 @app.get("/morning-plan")

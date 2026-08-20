@@ -81,6 +81,49 @@ header {
 }
 .quick-gen-btn:hover { background: rgba(240,165,0,0.2); }
 
+/* ── Auto Viral Suggestions ── */
+.viral-card {
+  background: #0d1117; border: 1px solid #1e2735; border-radius: 12px;
+  margin-bottom: 16px; overflow: hidden;
+}
+.viral-card-header {
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid #1e2735; flex-wrap: wrap;
+}
+.viral-card-title { flex: 1; font-size: 13px; color: #dce4f0; font-weight: 600; line-height: 1.4; min-width: 100px; }
+.viral-card-body { padding: 14px 16px; }
+.viral-tweet-box {
+  background: #111927; border: 1px solid #1a3a4a; border-radius: 8px;
+  padding: 12px; margin-bottom: 10px;
+}
+.viral-tweet-label { font-size: 10px; color: #1da1f2; font-family: monospace; text-transform: uppercase; margin-bottom: 6px; font-weight: 700; }
+.viral-tweet-text { font-size: 13px; color: #c8d6e8; line-height: 1.7; white-space: pre-wrap; }
+.viral-tweet-meta { font-size: 10px; color: #4d5e78; margin-top: 6px; }
+.viral-gen-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.vg-btn {
+  padding: 6px 12px; background: #111927; border: 1px solid #1e2735;
+  color: #677492; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.vg-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+.vg-btn.fb:hover   { border-color: #1877f2; color: #1877f2; }
+.vg-btn.li:hover   { border-color: #0a66c2; color: #0a66c2; }
+.vg-btn.ig:hover   { border-color: #e1306c; color: #e1306c; }
+.vg-btn.tt:hover   { border-color: #ff0050; color: #ff0050; }
+.vg-btn.yt:hover   { border-color: #ff0000; color: #ff0000; }
+.vg-btn.ytv:hover  { border-color: #ff6b6b; color: #ff6b6b; }
+.expand-gen { background: #0d1117; border: 1px solid #1e2735; border-radius: 8px; padding: 12px; margin-top: 8px; }
+.expand-gen-label { font-size: 10px; font-family: monospace; color: #677492; text-transform: uppercase; margin-bottom: 8px; }
+.auto-suggest-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+}
+.auto-refresh-btn {
+  padding: 7px 16px; background: linear-gradient(135deg,#7c3aed,#f0a500);
+  color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.auto-refresh-btn:hover { opacity: 0.85; }
+.auto-refresh-btn:disabled { background: #2d3748; cursor: not-allowed; }
+
 /* ── NEWS TAB layout ── */
 #tab-news { display: none; height: calc(100vh - 54px); grid-template-columns: 400px 1fr; }
 #tab-news.active { display: grid; }
@@ -158,6 +201,7 @@ header {
 .post-card.instagram-card { border-left: 3px solid #e1306c; }
 .post-card.tiktok-card { border-left: 3px solid #ff0050; }
 .post-card.youtube-card { border-left: 3px solid #ff0000; }
+.post-card.youtubevideo-card { border-left: 3px solid #ff6b6b; }
 .post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; font-family: monospace; color: #7c3aed; }
 .tweet-card .post-num { color: #1da1f2; }
 .thread-card .post-num { color: #c084fc; }
@@ -294,6 +338,17 @@ header {
 
 <!-- ══ TAB 1: MASTER DASHBOARD ══ -->
 <div class="tab-panel active" id="tab-dashboard">
+
+  <!-- 🚀 Auto Viral Feed -->
+  <div class="dash-section">
+    <div class="auto-suggest-header">
+      <div class="dash-section-title" style="margin-bottom:0;border:none;padding:0">🚀 Auto Viral Suggestions — Ready to Post</div>
+      <button class="auto-refresh-btn" id="auto-refresh-btn" onclick="loadAutoSuggest()">🔄 Refresh Suggestions</button>
+    </div>
+    <div id="auto-suggest-output">
+      <div class="loader"><span class="spin"></span>Loading viral suggestions...</div>
+    </div>
+  </div>
 
   <!-- Overview Stats -->
   <div class="dash-section">
@@ -604,7 +659,7 @@ function selectArticle(i) {
 const PLATFORM_CLASS = {
   facebook: 'active-fb', tweet: 'active-tweet', thread: 'active-thread',
   linkedin: 'active-linkedin', instagram: 'active-instagram',
-  tiktok: 'active-tiktok', youtube: 'active-youtube'
+  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtube'
 };
 
 const PLATFORM_LABEL = {
@@ -614,13 +669,15 @@ const PLATFORM_LABEL = {
   linkedin: '💼 Generate LinkedIn Posts',
   instagram: '📸 Generate Instagram Captions',
   tiktok: '🎵 Generate TikTok Scripts',
-  youtube: '▶️ Generate YouTube Shorts Ideas'
+  youtube: '▶️ Generate YouTube Shorts Ideas',
+  youtubevideo: '🎬 Generate YouTube Video Ideas'
 };
 
 const ENDPOINTS = {
   facebook: '/generate', tweet: '/generate/tweet', thread: '/generate/thread',
   linkedin: '/generate/linkedin', instagram: '/generate/instagram',
-  tiktok: '/generate/tiktok', youtube: '/generate/youtube'
+  tiktok: '/generate/tiktok', youtube: '/generate/youtube',
+  youtubevideo: '/generate/youtube-video'
 };
 
 function getPlatformClass(p) {
@@ -644,6 +701,7 @@ function renderRightPanel() {
         <button class="platform-btn ${getPlatformClass('instagram')}" onclick="setPlatform('instagram')">📸 Instagram</button>
         <button class="platform-btn ${getPlatformClass('tiktok')}" onclick="setPlatform('tiktok')">🎵 TikTok</button>
         <button class="platform-btn ${getPlatformClass('youtube')}" onclick="setPlatform('youtube')">▶️ YouTube Shorts</button>
+        <button class="platform-btn ${getPlatformClass('youtubevideo')}" onclick="setPlatform('youtubevideo')">🎬 YouTube Video</button>
       </div>
     </div>
     <div>
@@ -718,7 +776,7 @@ async function generateContent() {
             </div>
           </div>`).join('');
     } else {
-      const platformLabel = { facebook: 'Facebook Posts', linkedin: 'LinkedIn Posts', instagram: 'Instagram Captions', tiktok: 'TikTok Script Ideas', youtube: 'YouTube Shorts Ideas' }[selectedPlatform] || 'Posts';
+      const platformLabel = { facebook: 'Facebook Posts', linkedin: 'LinkedIn Posts', instagram: 'Instagram Captions', tiktok: 'TikTok Script Ideas', youtube: 'YouTube Shorts Ideas', youtubevideo: 'YouTube Video Ideas' }[selectedPlatform] || 'Posts';
       out.innerHTML = `<div class="section-label" style="margin-top:4px">Generated ${platformLabel}</div>` +
         data.posts.map((p, i) => `
           <div class="post-card ${cardClass}">
@@ -929,6 +987,106 @@ function timeAgo(iso) {
   return `${Math.floor(d/86400)} day ago`;
 }
 
+/* ══════════════════════════════════
+   AUTO VIRAL SUGGEST
+══════════════════════════════════ */
+let autoSuggestions = [];
+
+async function loadAutoSuggest() {
+  const out = document.getElementById('auto-suggest-output');
+  const btn = document.getElementById('auto-refresh-btn');
+  if (!out) return;
+  out.innerHTML = '<div class="loader"><span class="spin"></span>Fetching top viral trends + generating tweets...</div>';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
+  try {
+    const res = await fetch(`${API}/auto-suggest`, { method: 'POST' });
+    const data = await res.json();
+    autoSuggestions = data.suggestions || [];
+    if (!autoSuggestions.length) {
+      out.innerHTML = '<div style="font-size:12px;color:#4d5e78">No viral trends found. Try again later.</div>';
+      return;
+    }
+    renderAutoSuggest();
+  } catch(e) {
+    out.innerHTML = '<div class="error-msg">Could not load suggestions. Make sure the backend is running.</div>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh Suggestions'; }
+  }
+}
+
+function renderAutoSuggest() {
+  const out = document.getElementById('auto-suggest-output');
+  if (!out) return;
+  out.innerHTML = autoSuggestions.map((s, i) => `
+    <div class="viral-card">
+      <div class="viral-card-header">
+        <span class="score-badge score-${scClass(s.viral_score)}">${s.viral_score}</span>
+        <span class="viral-card-title">${esc(s.title || trunc(s.text, 100))}</span>
+        <span class="meta-pill" style="flex-shrink:0">${esc(s.source)}</span>
+        ${s.time_ago ? `<span class="meta-pill" style="flex-shrink:0">${esc(s.time_ago)}</span>` : ''}
+      </div>
+      <div class="viral-card-body">
+        ${s.tweet ? `
+        <div class="viral-tweet-box">
+          <div class="viral-tweet-label">🐦 Best Tweet — Ready to Post</div>
+          <div class="viral-tweet-text">${esc(s.tweet)}</div>
+          <div class="viral-tweet-meta">${s.tweet.length}/280 chars ${s.tweet.length > 280 ? '⚠️' : '✅'}</div>
+          <div class="card-actions" style="margin-top:8px">
+            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(s.tweet)})">📋 Copy Tweet</button>
+            <button class="save-btn" onclick="saveSingle('tweet',${JSON.stringify(s.tweet)},${JSON.stringify(s.title||s.text)},this)">💾 Save</button>
+          </div>
+        </div>` : '<div style="font-size:12px;color:#4d5e78">Tweet generation failed for this trend.</div>'}
+
+        <div class="viral-gen-row">
+          <span style="font-size:10px;color:#4d5e78;align-self:center;font-family:monospace">ALSO GENERATE:</span>
+          <button class="vg-btn fb" onclick="expandGen(${i},'facebook')">📘 Facebook</button>
+          <button class="vg-btn li" onclick="expandGen(${i},'linkedin')">💼 LinkedIn</button>
+          <button class="vg-btn ig" onclick="expandGen(${i},'instagram')">📸 Instagram</button>
+          <button class="vg-btn tt" onclick="expandGen(${i},'tiktok')">🎵 TikTok</button>
+          <button class="vg-btn yt" onclick="expandGen(${i},'youtube')">▶️ YT Shorts</button>
+          <button class="vg-btn ytv" onclick="expandGen(${i},'youtubevideo')">🎬 YT Video</button>
+        </div>
+        <div id="expand-gen-${i}"></div>
+      </div>
+    </div>`).join('');
+}
+
+async function expandGen(idx, platform) {
+  const s = autoSuggestions[idx];
+  const container = document.getElementById(`expand-gen-${idx}`);
+  if (!container) return;
+  container.innerHTML = `<div class="loader"><span class="spin"></span>Generating ${platform} content...</div>`;
+
+  const endpoint = `${API}${ENDPOINTS[platform]}`;
+  const headline = s.title || s.text;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ headline, summary: s.summary || '', tone: 'breaking' }),
+    });
+    const data = await res.json();
+    if (!res.ok) { container.innerHTML = `<div class="error-msg">${data.detail || 'Error'}</div>`; return; }
+
+    const labelMap = { facebook: '📘 Facebook', linkedin: '💼 LinkedIn', instagram: '📸 Instagram', tiktok: '🎵 TikTok Script', youtube: '▶️ YouTube Shorts', youtubevideo: '🎬 YouTube Video' };
+    const label = labelMap[platform] || platform;
+    sessionPostCount++; updateDashStats();
+    container.innerHTML = `<div class="expand-gen">
+      <div class="expand-gen-label">${label} Content</div>
+      ${data.posts.map((p, i) => `
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #1e2735">
+          <div style="font-size:10px;color:#4d5e78;font-family:monospace;margin-bottom:4px">Variation ${i+1}</div>
+          <div class="post-text">${esc(p)}</div>
+          <div class="card-actions" style="margin-top:8px">
+            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(p)})">📋 Copy</button>
+            <button class="save-btn" onclick="saveSingle(${JSON.stringify(platform)},${JSON.stringify(p)},${JSON.stringify(headline)},this)">💾 Save</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    container.innerHTML = '<div class="error-msg">Generation failed.</div>';
+  }
+}
+
 /* ══ INIT ══ */
 const savedSheetUrl = localStorage.getItem(SHEET_URL_KEY);
 if (savedSheetUrl) {
@@ -937,6 +1095,7 @@ if (savedSheetUrl) {
 }
 renderDashboard();
 loadNews();
+loadAutoSuggest();
 </script>
 </body>
 </html>
