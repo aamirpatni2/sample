@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI News Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(90deg, #1a1f2e, #232946);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #2d3748;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+  header span { font-size: 0.8rem; color: #718096; }
+
+  .layout { display: grid; grid-template-columns: 420px 1fr; height: calc(100vh - 57px); }
+
+  /* LEFT PANEL */
+  .left-panel { border-right: 1px solid #2d3748; display: flex; flex-direction: column; }
+  .panel-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #2d3748;
+    background: #1a1f2e;
+  }
+  .panel-header h2 { font-size: 0.9rem; color: #a0aec0; font-weight: 600; }
+  .news-list { overflow-y: auto; flex: 1; }
+
+  .news-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid #1e2535;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .news-item:hover { background: #1e2535; }
+  .news-item.selected { background: #2d2060; border-left: 3px solid #7c3aed; }
+
+  .news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .source-tag {
+    font-size: 0.65rem;
+    background: #2d3748;
+    color: #a78bfa;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .time-tag {
+    font-size: 0.65rem;
+    color: #718096;
+  }
+  .time-tag.fresh { color: #48bb78; }
+  .time-tag.old { color: #f6ad55; }
+
+  .news-title { font-size: 0.85rem; line-height: 1.5; color: #e2e8f0; }
+  .empty-state { padding: 40px 16px; text-align: center; color: #4a5568; font-size: 0.85rem; }
+
+  /* RIGHT PANEL */
+  .right-panel { display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 20px; }
+
+  .placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #4a5568;
+    gap: 12px;
+    text-align: center;
+  }
+  .placeholder .icon { font-size: 3rem; }
+  .placeholder p { font-size: 0.9rem; }
+
+  .selected-article {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .selected-article h3 { font-size: 1rem; color: #e2e8f0; margin-bottom: 8px; line-height: 1.5; }
+  .selected-article p { font-size: 0.8rem; color: #718096; line-height: 1.6; }
+
+  .tone-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; font-weight: 600; }
+  .tone-buttons { display: flex; gap: 10px; }
+  .tone-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #2d3748;
+    background: #1a1f2e;
+    color: #a0aec0;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tone-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .tone-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+  .generate-btn {
+    padding: 12px 28px;
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    align-self: flex-start;
+  }
+  .generate-btn:hover { background: #6d28d9; }
+  .generate-btn:disabled { background: #4a5568; cursor: not-allowed; }
+
+  .posts-section h4 { font-size: 0.85rem; color: #a0aec0; margin-bottom: 12px; font-weight: 600; }
+  .posts-grid { display: flex; flex-direction: column; gap: 14px; }
+
+  .post-card {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+  }
+  .post-card .post-num {
+    font-size: 0.7rem;
+    color: #7c3aed;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .post-card .post-text {
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #cbd5e0;
+    white-space: pre-wrap;
+  }
+  .copy-btn {
+    margin-top: 12px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #2d3748;
+    color: #a0aec0;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: #48bb78; color: #48bb78; }
+  .copy-btn.copied { border-color: #48bb78; color: #48bb78; }
+
+  .btn-refresh {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #2d3748;
+    color: #a0aec0;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-refresh:hover { border-color: #a78bfa; color: #a78bfa; }
+
+  .loader { text-align: center; color: #7c3aed; padding: 20px; font-size: 0.85rem; }
+  .error { color: #fc8181; font-size: 0.8rem; padding: 10px; background: #2d1515; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 AI News Agent</h1>
+  <span>Fresh AI news • Last 24 hours only</span>
+</header>
+
+<div class="layout">
+  <!-- LEFT: News List -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <h2 id="news-count">Loading news...</h2>
+      <button class="btn-refresh" onclick="loadNews(true)">↻ Refresh</button>
+    </div>
+    <div class="news-list" id="news-list">
+      <div class="loader">Fetching AI news...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Generate Panel -->
+  <div class="right-panel" id="right-panel">
+    <div class="placeholder">
+      <div class="icon">📰</div>
+      <p>Select an AI news item from the left<br/>to generate Facebook posts</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let selectedArticle = null;
+let selectedTone = 'informative';
+
+async function loadNews(forceRefresh = false) {
+  const list = document.getElementById('news-list');
+  const countEl = document.getElementById('news-count');
+  list.innerHTML = '<div class="loader">Fetching AI news...</div>';
+
+  try {
+    const endpoint = forceRefresh ? `${API}/news/refresh` : `${API}/news`;
+    const method = forceRefresh ? 'POST' : 'GET';
+    const res = await fetch(endpoint, { method });
+    const data = await res.json();
+
+    countEl.textContent = `${data.count} AI articles (24hr)`;
+
+    if (!data.articles.length) {
+      list.innerHTML = '<div class="empty-state">No fresh AI news found right now.<br/>Try refreshing in a bit.</div>';
+      return;
+    }
+
+    list.innerHTML = data.articles.map((a, i) => `
+      <div class="news-item" onclick="selectArticle(${i})" id="item-${i}">
+        <div class="news-meta">
+          <span class="source-tag">${a.source}</span>
+          <span class="time-tag ${a.age_hours < 6 ? 'fresh' : a.age_hours > 20 ? 'old' : ''}">
+            ${a.time_ago}${a.age_hours > 20 ? ' ⚠️' : ''}
+          </span>
+        </div>
+        <div class="news-title">${a.title}</div>
+      </div>
+    `).join('');
+
+    window._articles = data.articles;
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state error">Could not connect to backend.<br/>Make sure the server is running on port 8000.</div>';
+    countEl.textContent = 'Error loading news';
+  }
+}
+
+function selectArticle(i) {
+  document.querySelectorAll('.news-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`item-${i}`)?.classList.add('selected');
+  selectedArticle = window._articles[i];
+  renderRightPanel();
+}
+
+function renderRightPanel() {
+  const a = selectedArticle;
+  document.getElementById('right-panel').innerHTML = `
+    <div class="selected-article">
+      <h3>${a.title}</h3>
+      ${a.summary ? `<p>${a.summary}</p>` : ''}
+    </div>
+
+    <div class="tone-section">
+      <h4>Select Tone</h4>
+      <div class="tone-buttons">
+        <button class="tone-btn ${selectedTone === 'informative' ? 'active' : ''}" onclick="setTone('informative')">📊 Informative</button>
+        <button class="tone-btn ${selectedTone === 'breaking' ? 'active' : ''}" onclick="setTone('breaking')">🚨 Breaking News</button>
+        <button class="tone-btn ${selectedTone === 'thought' ? 'active' : ''}" onclick="setTone('thought')">💭 Thought-Provoking</button>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="gen-btn" onclick="generatePosts()">✨ Generate Facebook Posts</button>
+
+    <div id="posts-output"></div>
+  `;
+}
+
+function setTone(tone) {
+  selectedTone = tone;
+  document.querySelectorAll('.tone-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+async function generatePosts() {
+  const btn = document.getElementById('gen-btn');
+  const out = document.getElementById('posts-output');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  out.innerHTML = '<div class="loader">Claude is writing your posts...</div>';
+
+  try {
+    const res = await fetch(`${API}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        headline: selectedArticle.title,
+        summary: selectedArticle.summary,
+        tone: selectedTone,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      out.innerHTML = `<div class="error">${data.detail || 'Generation failed'}</div>`;
+      return;
+    }
+
+    out.innerHTML = `
+      <div class="posts-section">
+        <h4>Generated Facebook Posts</h4>
+        <div class="posts-grid">
+          ${data.posts.map((post, i) => `
+            <div class="post-card">
+              <div class="post-num">Variation ${i + 1}</div>
+              <div class="post-text">${escapeHtml(post)}</div>
+              <button class="copy-btn" onclick="copyPost(this, ${JSON.stringify(post)})">📋 Copy</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    out.innerHTML = '<div class="error">Could not connect to backend.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Generate Facebook Posts';
+  }
+}
+
+function copyPost(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+loadNews();
+</script>
+</body>
+</html>

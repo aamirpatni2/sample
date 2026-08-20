@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+feedparser
+anthropic
+python-dotenv
+httpx
