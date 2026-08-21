@@ -14,7 +14,7 @@ from news_fetcher import fetch_ai_news
 from agent import (
     generate_posts, generate_tweet, generate_thread, rewrite_viral_post,
     generate_linkedin, generate_instagram, generate_tiktok_idea, generate_youtube_idea,
-    generate_youtube_video, generate_single_tweet,
+    generate_youtube_video, generate_single_tweet, generate_reel_script,
 )
 from trend_fetcher import fetch_and_score_trends
 from google_sheets import fetch_morning_plan
@@ -150,6 +150,16 @@ def generate_youtube_video_endpoint(req: GenerateRequest):
     if req.tone not in ("informative", "breaking", "thought"):
         raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
     posts = generate_youtube_video(req.headline, req.summary, req.tone)
+    return {"posts": posts}
+
+
+@app.post("/generate/reel-script")
+def generate_reel_script_endpoint(req: GenerateRequest):
+    if not req.headline.strip():
+        raise HTTPException(status_code=400, detail="headline is required")
+    if req.tone not in ("informative", "breaking", "thought"):
+        raise HTTPException(status_code=400, detail="tone must be informative, breaking, or thought")
+    posts = generate_reel_script(req.headline, req.summary, req.tone)
     return {"posts": posts}
 
 

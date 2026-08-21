@@ -5,11 +5,28 @@ client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 # ── Facebook ───────────────────────────────────────────────────────────────
 
-FB_SYSTEM = """You are a Facebook content writer specializing in AI news.
-Write engaging Facebook posts in clear English.
-Use relevant emojis and popular AI hashtags.
-Keep posts between 100-200 words each.
-Make the content feel authentic, not like a press release."""
+FB_SYSTEM = """You are a Facebook content writer for Aamir Patni, an AI educator for Pakistani students, teachers, and freelancers.
+
+STRICT LENGTH: 250-600 characters total. Count carefully. Never exceed 600 characters.
+
+EXACT TEMPLATE (follow this structure every time):
+Line 1: HOOK — one bold claim or curiosity question that stops the scroll
+Lines 2-3: PROBLEM — something the viewer deals with daily (relatable pain)
+✅ [Outcome 1]
+✅ [Outcome 2]
+✅ [Outcome 3]
+⚠️ Always verify AI output before using
+Comment "PROMPT" — main poora prompt bhej doonga
+Rozana practical AI ke liye Aamir Patni ko follow karein
+#AILabPakistan #AamirPatni #[topical1] #[topical2] #[topical3]
+
+HOOK TYPES — rotate through these four styles across variations:
+1. Curiosity: "Ye sirf 30 second mein bana hai — aur log soch rahe hain expert ne banaya"
+2. Pain: "Agar aap ye kaam haath se kar rahe hain, 2 ghantay roz zaya ho rahe hain"
+3. Identity: "Teachers ke liye: ye ek prompt poora hafta bacha sakta hai"
+4. Contrarian: "Prompt engineering khatam ho rahi hai. Aur ye achi khabar hai."
+
+Write in clear English. Outcomes must be specific and believable. Exactly 5 hashtags."""
 
 # ── X (Twitter) ────────────────────────────────────────────────────────────
 
@@ -365,6 +382,50 @@ Do not number them."""
 
     raw = message.content[0].text
     parts = [p.strip() for p in raw.split("---VIDEO---") if p.strip()]
+    return parts[:2]
+
+
+# ── Facebook Reel Script ────────────────────────────────────────────────────
+
+REEL_SCRIPT_SYSTEM = """You are a Facebook Reels script writer for Aamir Patni, an AI educator for Pakistani audience.
+
+Write 30-60 second vertical Reel scripts following this EXACT formula:
+
+[0-2s] RESULT FIRST: Describe showing the finished AI output on screen — what it produced (hook viewers instantly)
+[2-5s] HOOK: State the problem the viewer has TODAY in simple Urdu/English mix — use one of: curiosity / pain / identity / contrarian style
+[5-35s] THE DOING: Step-by-step screen recording walkthrough — describe what to show on screen, real prompt visible to camera
+[35-45s] CAVEAT: "Output verify zaroor karein — AI galti bhi karta hai"
+[45-55s] CTA: Comment "PROMPT" — main poora prompt bhej doonga + Follow Aamir Patni for daily AI
+
+Format each section with its timestamp label. Include ON-SCREEN TEXT suggestions in [square brackets].
+Footer note: Format: 30-60s · Vertical 9:16 · Large Urdu captions recommended
+
+Write 2 complete script variations."""
+
+
+def generate_reel_script(headline: str, summary: str, tone: str) -> list[str]:
+    tone_note = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["informative"])
+
+    prompt = f"""AI News Headline: {headline}
+
+Summary: {summary}
+
+Tone instruction: {tone_note}
+
+Write exactly 2 different Facebook Reel script variations about this AI news/topic.
+Each script must follow the exact timing formula from the system prompt.
+Separate each script with the delimiter: ---SCRIPT---
+Do not number them."""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1400,
+        system=REEL_SCRIPT_SYSTEM,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text
+    parts = [p.strip() for p in raw.split("---SCRIPT---") if p.strip()]
     return parts[:2]
 
 

@@ -173,7 +173,8 @@ header {
 .platform-btn.active-linkedin { background: #0a66c2; border-color: #0a66c2; color: #fff; }
 .platform-btn.active-instagram{ background: linear-gradient(135deg,#e1306c,#fd1d1d,#fcb045); border-color: #e1306c; color: #fff; }
 .platform-btn.active-tiktok   { background: #111; border-color: #ff0050; color: #ff0050; }
-.platform-btn.active-youtube  { background: #111; border-color: #ff0000; color: #ff0000; }
+.platform-btn.active-youtube     { background: #111; border-color: #ff0000; color: #ff0000; }
+.platform-btn.active-reelscript  { background: #111; border-color: #ff6b6b; color: #ff6b6b; }
 
 /* Tone buttons */
 .tone-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -202,6 +203,7 @@ header {
 .post-card.tiktok-card { border-left: 3px solid #ff0050; }
 .post-card.youtube-card { border-left: 3px solid #ff0000; }
 .post-card.youtubevideo-card { border-left: 3px solid #ff6b6b; }
+.post-card.reelscript-card   { border-left: 3px solid #ff6b6b; }
 .post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; font-family: monospace; color: #7c3aed; }
 .tweet-card .post-num { color: #1da1f2; }
 .thread-card .post-num { color: #c084fc; }
@@ -373,6 +375,26 @@ header {
     </div>
   </div>
 
+  <!-- Posting Time Reminder -->
+  <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.8;">
+    🕗 Best time to post: <strong style="color:#a78bfa">8:30–9:30pm PKT</strong> (primary) &nbsp;·&nbsp; <strong style="color:#a78bfa">1:00–1:30pm PKT</strong> (secondary)
+    &nbsp;&nbsp;<span style="color:#fc8181">❌ Avoid: 9am–12pm, midnight posts</span>
+  </div>
+
+  <!-- Weekly Schedule -->
+  <div class="dash-section">
+    <div class="dash-section-title" style="cursor:pointer" onclick="toggleWeeklyPlan()">📅 This Week's Content Plan <span id="weekly-toggle" style="float:right;font-size:10px;color:#677492">▼ expand</span></div>
+    <div id="weekly-plan-body" style="display:none;">
+      <div class="plan-item"><span class="plan-priority">MON</span><span class="plan-topic">🎬 AI LAB experiment — tool demo (screen record)</span></div>
+      <div class="plan-item"><span class="plan-priority">TUE</span><span class="plan-topic">🎬 "Ye galti mat karo" — common AI mistake Reel</span></div>
+      <div class="plan-item"><span class="plan-priority">WED</span><span class="plan-topic">🎬 Urdu prompt of the day &nbsp;+&nbsp; 📊 Carousel post</span></div>
+      <div class="plan-item"><span class="plan-priority">THU</span><span class="plan-topic">🎬 Student result / before-after &nbsp;+&nbsp; 🔴 Live at 9pm</span></div>
+      <div class="plan-item"><span class="plan-priority">FRI</span><span class="plan-topic">🎬 "AI se ye kaam 60 sec mein" &nbsp;+&nbsp; 💬 Opinion text post</span></div>
+      <div class="plan-item"><span class="plan-priority">SAT</span><span class="plan-topic">🎬 Weekly AI news roundup &nbsp;+&nbsp; 📢 Offer post</span></div>
+      <div class="plan-item"><span class="plan-priority">SUN</span><span class="plan-topic">📦 Batch recording day — prep next week's Reels</span></div>
+    </div>
+  </div>
+
   <!-- Today's Content Plan from Google Sheets -->
   <div class="dash-section">
     <div class="dash-section-title">Today's Content Plan (Google Sheets)</div>
@@ -461,6 +483,14 @@ header {
 
 <script>
 const API = '';
+
+function toggleWeeklyPlan() {
+  const body = document.getElementById('weekly-plan-body');
+  const toggle = document.getElementById('weekly-toggle');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  toggle.textContent = open ? '▲ collapse' : '▼ expand';
+}
 
 /* ══ TAB SWITCHING ══ */
 function switchTab(name, btn) {
@@ -659,7 +689,8 @@ function selectArticle(i) {
 const PLATFORM_CLASS = {
   facebook: 'active-fb', tweet: 'active-tweet', thread: 'active-thread',
   linkedin: 'active-linkedin', instagram: 'active-instagram',
-  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtube'
+  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtube',
+  reelscript: 'active-reelscript'
 };
 
 const PLATFORM_LABEL = {
@@ -670,14 +701,16 @@ const PLATFORM_LABEL = {
   instagram: '📸 Generate Instagram Captions',
   tiktok: '🎵 Generate TikTok Scripts',
   youtube: '▶️ Generate YouTube Shorts Ideas',
-  youtubevideo: '🎬 Generate YouTube Video Ideas'
+  youtubevideo: '🎬 Generate YouTube Video Ideas',
+  reelscript: '🎬 Generate Facebook Reel Script'
 };
 
 const ENDPOINTS = {
   facebook: '/generate', tweet: '/generate/tweet', thread: '/generate/thread',
   linkedin: '/generate/linkedin', instagram: '/generate/instagram',
   tiktok: '/generate/tiktok', youtube: '/generate/youtube',
-  youtubevideo: '/generate/youtube-video'
+  youtubevideo: '/generate/youtube-video',
+  reelscript: '/generate/reel-script'
 };
 
 function getPlatformClass(p) {
@@ -702,6 +735,7 @@ function renderRightPanel() {
         <button class="platform-btn ${getPlatformClass('tiktok')}" onclick="setPlatform('tiktok')">🎵 TikTok</button>
         <button class="platform-btn ${getPlatformClass('youtube')}" onclick="setPlatform('youtube')">▶️ YouTube Shorts</button>
         <button class="platform-btn ${getPlatformClass('youtubevideo')}" onclick="setPlatform('youtubevideo')">🎬 YouTube Video</button>
+        <button class="platform-btn ${getPlatformClass('reelscript')}" onclick="setPlatform('reelscript')">🎬 Reel Script</button>
       </div>
     </div>
     <div>
@@ -735,7 +769,8 @@ async function generateContent() {
   const cardClass = {
     facebook: '', tweet: 'tweet-card', thread: 'thread-card',
     linkedin: 'linkedin-card', instagram: 'instagram-card',
-    tiktok: 'tiktok-card', youtube: 'youtube-card'
+    tiktok: 'tiktok-card', youtube: 'youtube-card',
+    youtubevideo: 'youtubevideo-card', reelscript: 'reelscript-card'
   }[selectedPlatform] || '';
 
   try {
@@ -776,7 +811,7 @@ async function generateContent() {
             </div>
           </div>`).join('');
     } else {
-      const platformLabel = { facebook: 'Facebook Posts', linkedin: 'LinkedIn Posts', instagram: 'Instagram Captions', tiktok: 'TikTok Script Ideas', youtube: 'YouTube Shorts Ideas', youtubevideo: 'YouTube Video Ideas' }[selectedPlatform] || 'Posts';
+      const platformLabel = { facebook: 'Facebook Posts', linkedin: 'LinkedIn Posts', instagram: 'Instagram Captions', tiktok: 'TikTok Script Ideas', youtube: 'YouTube Shorts Ideas', youtubevideo: 'YouTube Video Ideas', reelscript: 'Facebook Reel Scripts' }[selectedPlatform] || 'Posts';
       out.innerHTML = `<div class="section-label" style="margin-top:4px">Generated ${platformLabel}</div>` +
         data.posts.map((p, i) => `
           <div class="post-card ${cardClass}">
