@@ -4,331 +4,509 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI News Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+/* ── Design Tokens ── */
+:root {
+  --bg-base:    #07090f;
+  --bg-surface: #0c0f1a;
+  --bg-card:    #111827;
+  --bg-raised:  #1a2235;
+  --bg-hover:   #1e293b;
+  --border:     #1e2d3d;
+  --border-dim: #131e2c;
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #4a5568;
+  --text-dim:       #2d3748;
+  --accent:      #7c3aed;
+  --accent-glow: rgba(124,58,237,0.25);
+  --accent-2:    #a78bfa;
+  --gold:        #f59e0b;
+  --gold-dim:    rgba(245,158,11,0.1);
+  --green:  #22c55e;
+  --red:    #ef4444;
+  --amber:  #eab308;
+  --blue:   #3b82f6;
+  --fb:   #1877f2;
+  --tw:   #1da1f2;
+  --li:   #0a66c2;
+  --ig:   #e1306c;
+  --tt:   #ff0050;
+  --yt:   #ff0000;
+  --rl:   #ff6b6b;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #dce4f0; min-height: 100vh; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+code, .mono, .stat-num, .score-badge, .source-tag, .time-tag,
+.plan-priority, .feed-label, .feed-count, .item-source, .item-time,
+.bar-val, .meta-pill, .library-date, .library-platform-badge,
+.expand-gen-label, .breakdown-title, .card-label {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Shimmer skeleton ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-raised) 50%, var(--bg-card) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+}
 
 /* ── Header ── */
 header {
-  background: #0d1117; border-bottom: 1px solid #1e2735;
-  padding: 0 20px; height: 54px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 56px;
   display: flex; align-items: center; justify-content: space-between;
+  position: relative;
+}
+header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent 40%, transparent 60%, var(--gold));
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-name { font-size: 14px; font-weight: 700; color: #a78bfa; }
+.brand-icon { font-size: 22px; }
+.brand-name {
+  font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-2), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ── Tabs ── */
 .tabs { display: flex; gap: 4px; }
 .tab-btn {
-  padding: 6px 16px; border-radius: 6px; font-size: 13px;
-  background: transparent; border: none; color: #677492;
-  cursor: pointer; transition: all 0.15s;
+  padding: 6px 16px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 500;
+  background: transparent; border: none;
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s;
 }
-.tab-btn:hover { background: #1a2133; color: #dce4f0; }
-.tab-btn.active { background: #1a2133; color: #a78bfa; font-weight: 600; }
+.tab-btn:hover { background: var(--bg-raised); color: var(--text-primary); }
+.tab-btn.active {
+  background: var(--bg-raised); color: var(--accent-2); font-weight: 600;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
 
 /* ── Tab Panels ── */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
 /* ── DASHBOARD TAB ── */
-#tab-dashboard { overflow-y: auto; height: calc(100vh - 54px); padding: 24px; }
+#tab-dashboard { overflow-y: auto; height: calc(100vh - 56px); padding: 24px; }
 .dash-section { margin-bottom: 28px; }
 .dash-section-title {
-  font-size: 11px; color: #677492; font-weight: 600; font-family: monospace;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  margin-bottom: 12px; border-bottom: 1px solid #1e2735; padding-bottom: 8px;
+  font-size: 11px; color: var(--text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  font-family: 'JetBrains Mono', monospace;
 }
 .stats-row-dash { display: flex; gap: 12px; flex-wrap: wrap; }
 .stat-box-dash {
-  flex: 1; min-width: 130px; background: #0d1117; border: 1px solid #1e2735;
-  border-radius: 10px; padding: 16px; text-align: center;
+  flex: 1; min-width: 130px;
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 18px 16px; text-align: center; position: relative; overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
+.stat-box-dash:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.stat-box-dash::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-box-dash:nth-child(1)::before { background: var(--gold); }
+.stat-box-dash:nth-child(2)::before { background: var(--accent-2); }
+.stat-box-dash:nth-child(3)::before { background: var(--red); }
+.stat-box-dash:nth-child(4)::before { background: var(--green); }
+
+/* Posting banner */
+.posting-banner {
+  background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.05));
+  border: 1px solid rgba(124,58,237,0.25);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: 12px 16px; margin-bottom: 20px;
+  font-size: 12px; line-height: 1.8;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.posting-banner strong { color: var(--accent-2); }
+.posting-banner .avoid { color: #fc8181; }
+
+/* Weekly plan day chips */
 .plan-item {
-  background: #0d1117; border: 1px solid #1e2735; border-radius: 8px;
-  padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 10px 14px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  transition: background 0.12s;
 }
-.plan-priority { font-family: monospace; font-size: 11px; color: #f0a500; background: rgba(240,165,0,0.1); padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-.plan-topic { flex: 1; font-size: 13px; color: #c8d6e8; line-height: 1.4; min-width: 120px; }
-.plan-platform { font-family: monospace; font-size: 10px; color: #a78bfa; background: rgba(124,58,237,0.1); padding: 2px 8px; border-radius: 10px; }
-.plan-notes { font-size: 11px; color: #4d5e78; width: 100%; padding-top: 4px; }
+.plan-item:hover { background: var(--bg-raised); }
+.plan-priority {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
+  flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
+}
+.plan-priority.mon { background: rgba(59,130,246,0.15);  color: #60a5fa; }
+.plan-priority.tue { background: rgba(124,58,237,0.15);  color: #a78bfa; }
+.plan-priority.wed { background: rgba(34,197,94,0.15);   color: #4ade80; }
+.plan-priority.thu { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+.plan-priority.fri { background: rgba(239,68,68,0.15);   color: #f87171; }
+.plan-priority.sat { background: rgba(20,184,166,0.15);  color: #2dd4bf; }
+.plan-priority.sun { background: rgba(251,191,36,0.15);  color: #fcd34d; }
+.plan-topic { flex: 1; font-size: 13px; color: var(--text-secondary); line-height: 1.4; min-width: 120px; }
+.plan-platform { font-size: 10px; color: var(--accent-2); background: rgba(124,58,237,0.1); padding: 2px 8px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; }
+.plan-notes { font-size: 11px; color: var(--text-muted); width: 100%; padding-top: 4px; }
 .sheet-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .sheet-input {
-  flex: 1; background: #0d1117; border: 1px solid #1e2735; border-radius: 6px;
-  padding: 8px 12px; color: #dce4f0; font-size: 12px; font-family: monospace; outline: none;
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 8px 12px; color: var(--text-primary); font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; outline: none;
 }
-.sheet-input:focus { border-color: #7c3aed; }
+.sheet-input:focus { border-color: var(--accent); }
 .sheet-load-btn {
-  padding: 8px 16px; background: #7c3aed; color: #fff; border: none;
-  border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+  padding: 8px 16px; background: var(--accent); color: #fff; border: none;
+  border-radius: var(--r-sm); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s;
 }
 .sheet-load-btn:hover { background: #6d28d9; }
-.library-item { background: #0d1117; border: 1px solid #1e2735; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+.library-item {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 12px 14px; margin-bottom: 8px;
+}
 .library-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-.library-platform-badge { font-family: monospace; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #1a2133; color: #a78bfa; }
-.library-headline { font-size: 11px; color: #4d5e78; flex: 1; min-width: 80px; }
-.library-date { font-size: 10px; color: #2d3a52; font-family: monospace; }
-.library-content { font-size: 12px; color: #c8d6e8; line-height: 1.6; white-space: pre-wrap; max-height: 80px; overflow: hidden; }
+.library-platform-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--bg-raised); color: var(--accent-2); }
+.library-headline { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 80px; }
+.library-date { font-size: 10px; color: var(--text-dim); }
+.library-content { font-size: 12px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; max-height: 80px; overflow: hidden; }
 .library-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .quick-trend {
-  background: #0d1117; border: 1px solid #1e2735; border-radius: 8px;
-  padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 10px 12px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  transition: background 0.12s;
 }
-.quick-trend-title { flex: 1; font-size: 12px; color: #c8d6e8; line-height: 1.4; min-width: 100px; }
+.quick-trend:hover { background: var(--bg-raised); }
+.quick-trend-title { flex: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.4; min-width: 100px; }
 .quick-gen-btn {
-  padding: 5px 12px; background: rgba(240,165,0,0.1); border: 1px solid rgba(240,165,0,0.3);
-  color: #f0a500; border-radius: 6px; font-size: 11px; cursor: pointer; font-family: monospace; white-space: nowrap;
+  padding: 5px 12px; background: var(--gold-dim); border: 1px solid rgba(245,158,11,0.3);
+  color: var(--gold); border-radius: var(--r-sm); font-size: 11px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; white-space: nowrap; transition: all 0.15s;
 }
-.quick-gen-btn:hover { background: rgba(240,165,0,0.2); }
+.quick-gen-btn:hover { background: rgba(245,158,11,0.2); }
 
 /* ── Auto Viral Suggestions ── */
 .viral-card {
-  background: #0d1117; border: 1px solid #1e2735; border-radius: 12px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg);
   margin-bottom: 16px; overflow: hidden;
+  transition: box-shadow 0.15s;
 }
+.viral-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
 .viral-card-header {
   padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-  border-bottom: 1px solid #1e2735; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  border-left: 3px solid var(--border-dim);
 }
-.viral-card-title { flex: 1; font-size: 13px; color: #dce4f0; font-weight: 600; line-height: 1.4; min-width: 100px; }
+.viral-card-header.tier-viral { border-left-color: var(--red); }
+.viral-card-header.tier-high  { border-left-color: var(--green); }
+.viral-card-header.tier-med   { border-left-color: var(--amber); }
+.viral-card-header.tier-low   { border-left-color: var(--text-muted); }
+.viral-card-title { flex: 1; font-size: 13px; color: var(--text-primary); font-weight: 600; line-height: 1.4; min-width: 100px; }
 .viral-card-body { padding: 14px 16px; }
 .viral-tweet-box {
-  background: #111927; border: 1px solid #1a3a4a; border-radius: 8px;
-  padding: 12px; margin-bottom: 10px;
+  background: rgba(29,161,242,0.04); border: 1px solid rgba(29,161,242,0.15);
+  border-left: 2px solid var(--tw);
+  border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;
 }
-.viral-tweet-label { font-size: 10px; color: #1da1f2; font-family: monospace; text-transform: uppercase; margin-bottom: 6px; font-weight: 700; }
-.viral-tweet-text { font-size: 13px; color: #c8d6e8; line-height: 1.7; white-space: pre-wrap; }
-.viral-tweet-meta { font-size: 10px; color: #4d5e78; margin-top: 6px; }
+.viral-tweet-label { font-size: 10px; color: var(--tw); text-transform: uppercase; margin-bottom: 6px; font-weight: 700; }
+.viral-tweet-text { font-size: 13px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; }
+.viral-tweet-meta { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 .viral-gen-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .vg-btn {
-  padding: 6px 12px; background: #111927; border: 1px solid #1e2735;
-  color: #677492; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s;
+  padding: 6px 12px; background: var(--bg-raised); border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
 }
-.vg-btn:hover { border-color: #a78bfa; color: #a78bfa; }
-.vg-btn.fb:hover   { border-color: #1877f2; color: #1877f2; }
-.vg-btn.li:hover   { border-color: #0a66c2; color: #0a66c2; }
-.vg-btn.ig:hover   { border-color: #e1306c; color: #e1306c; }
-.vg-btn.tt:hover   { border-color: #ff0050; color: #ff0050; }
-.vg-btn.yt:hover   { border-color: #ff0000; color: #ff0000; }
-.vg-btn.ytv:hover  { border-color: #ff6b6b; color: #ff6b6b; }
-.expand-gen { background: #0d1117; border: 1px solid #1e2735; border-radius: 8px; padding: 12px; margin-top: 8px; }
-.expand-gen-label { font-size: 10px; font-family: monospace; color: #677492; text-transform: uppercase; margin-bottom: 8px; }
+.vg-btn:hover   { border-color: var(--accent-2); color: var(--accent-2); }
+.vg-btn.fb:hover   { border-color: var(--fb);  color: var(--fb); }
+.vg-btn.li:hover   { border-color: var(--li);  color: var(--li); }
+.vg-btn.ig:hover   { border-color: var(--ig);  color: var(--ig); }
+.vg-btn.tt:hover   { border-color: var(--tt);  color: var(--tt); }
+.vg-btn.yt:hover   { border-color: var(--yt);  color: var(--yt); }
+.vg-btn.ytv:hover  { border-color: var(--rl);  color: var(--rl); }
+.vg-btn.rl:hover   { border-color: var(--rl);  color: var(--rl); }
+.expand-gen { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; margin-top: 8px; }
+.expand-gen-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.06em; }
 .auto-suggest-header {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
 }
 .auto-refresh-btn {
-  padding: 7px 16px; background: linear-gradient(135deg,#7c3aed,#f0a500);
-  color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600;
+  padding: 7px 16px; background: linear-gradient(135deg, var(--accent), var(--gold));
+  color: #fff; border: none; border-radius: var(--r-sm); font-size: 12px; font-weight: 600;
   cursor: pointer; transition: opacity 0.15s;
 }
 .auto-refresh-btn:hover { opacity: 0.85; }
-.auto-refresh-btn:disabled { background: #2d3748; cursor: not-allowed; }
+.auto-refresh-btn:disabled { background: var(--text-dim); cursor: not-allowed; }
 
 /* ── NEWS TAB layout ── */
-#tab-news { display: none; height: calc(100vh - 54px); grid-template-columns: 400px 1fr; }
+#tab-news { display: none; height: calc(100vh - 56px); grid-template-columns: 400px 1fr; }
 #tab-news.active { display: grid; }
 
 /* Left panel */
-.left-panel { border-right: 1px solid #1e2735; display: flex; flex-direction: column; background: #0d1117; }
+.left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-surface); }
 .panel-header {
-  padding: 12px 16px; border-bottom: 1px solid #1e2735;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
 }
-.panel-header h2 { font-size: 12px; color: #677492; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+.panel-header h2 { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'JetBrains Mono', monospace; }
 .news-list { overflow-y: auto; flex: 1; }
 .news-list::-webkit-scrollbar { width: 3px; }
-.news-list::-webkit-scrollbar-thumb { background: #1e2735; }
-.news-item { padding: 14px 16px; border-bottom: 1px solid #111927; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
-.news-item:hover { background: #111927; }
-.news-item.selected { background: #111927; border-left-color: #7c3aed; }
+.news-list::-webkit-scrollbar-thumb { background: var(--border); }
+.news-item {
+  padding: 14px 16px; border-bottom: 1px solid var(--border-dim);
+  cursor: pointer; transition: background 0.12s, border-left-color 0.12s;
+  border-left: 3px solid transparent;
+}
+.news-item:hover { background: var(--bg-raised); }
+.news-item.selected { background: var(--bg-raised); border-left-color: var(--accent); }
 .news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-.source-tag { font-size: 10px; background: #1a2133; color: #a78bfa; padding: 2px 7px; border-radius: 10px; font-weight: 600; font-family: monospace; }
-.time-tag { font-size: 10px; color: #4d5e78; }
-.time-tag.fresh { color: #22c55e; }
+.source-tag { font-size: 10px; background: rgba(124,58,237,0.1); color: var(--accent-2); padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+.time-tag { font-size: 10px; color: var(--text-dim); }
+.time-tag.fresh { color: var(--green); }
 .time-tag.old { color: #f6ad55; }
-.news-title { font-size: 13px; line-height: 1.5; color: #c8d6e8; }
+.news-title { font-size: 13px; line-height: 1.5; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Right panel */
-.right-panel { display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 18px; background: #0a0d14; }
+.right-panel {
+  display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 18px;
+  background: var(--bg-base);
+}
 .right-panel::-webkit-scrollbar { width: 3px; }
-.right-panel::-webkit-scrollbar-thumb { background: #1e2735; }
-.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2d3a52; gap: 12px; text-align: center; }
+.right-panel::-webkit-scrollbar-thumb { background: var(--border); }
+.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); gap: 12px; text-align: center; }
 .placeholder .icon { font-size: 42px; opacity: 0.4; }
 .placeholder p { font-size: 14px; line-height: 1.6; }
-.selected-article { background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 16px; }
-.selected-article h3 { font-size: 15px; color: #dce4f0; margin-bottom: 8px; line-height: 1.5; font-weight: 600; }
-.selected-article p { font-size: 12px; color: #677492; line-height: 1.65; }
-
-/* Platform selector */
-.section-label { font-size: 11px; color: #677492; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
-.platform-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-.platform-btn {
-  padding: 7px 14px; border-radius: 20px; border: 1px solid #1e2735;
-  background: #0d1117; color: #677492; font-size: 12px; cursor: pointer; transition: all 0.15s;
+.selected-article {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px;
 }
-.platform-btn:hover { border-color: #a78bfa; color: #a78bfa; }
-.platform-btn.active-fb       { background: #1877f2; border-color: #1877f2; color: #fff; }
-.platform-btn.active-tweet    { background: #111; border-color: #1da1f2; color: #1da1f2; }
-.platform-btn.active-thread   { background: #111; border-color: #9333ea; color: #c084fc; }
-.platform-btn.active-linkedin { background: #0a66c2; border-color: #0a66c2; color: #fff; }
-.platform-btn.active-instagram{ background: linear-gradient(135deg,#e1306c,#fd1d1d,#fcb045); border-color: #e1306c; color: #fff; }
-.platform-btn.active-tiktok   { background: #111; border-color: #ff0050; color: #ff0050; }
-.platform-btn.active-youtube     { background: #111; border-color: #ff0000; color: #ff0000; }
-.platform-btn.active-reelscript  { background: #111; border-color: #ff6b6b; color: #ff6b6b; }
+.selected-article h3 { font-size: 15px; color: var(--text-primary); margin-bottom: 8px; line-height: 1.5; font-weight: 600; }
+.selected-article p { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+
+/* Platform selector — grid */
+.section-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
+.platform-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+.platform-btn {
+  padding: 9px 12px; border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-muted);
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  text-align: center; white-space: nowrap;
+}
+.platform-btn:hover { border-color: var(--accent-2); color: var(--accent-2); background: rgba(167,139,250,0.06); }
+.platform-btn.active-fb       { background: rgba(24,119,242,0.12); border-color: var(--fb); color: var(--fb); }
+.platform-btn.active-tweet    { background: rgba(29,161,242,0.08); border-color: var(--tw); color: var(--tw); }
+.platform-btn.active-thread   { background: rgba(147,51,234,0.1);  border-color: #9333ea; color: #c084fc; }
+.platform-btn.active-linkedin { background: rgba(10,102,194,0.12); border-color: var(--li); color: var(--li); }
+.platform-btn.active-instagram{ background: rgba(225,48,108,0.1);  border-color: var(--ig); color: var(--ig); }
+.platform-btn.active-tiktok   { background: rgba(255,0,80,0.08);   border-color: var(--tt); color: var(--tt); }
+.platform-btn.active-youtube      { background: rgba(255,0,0,0.08);   border-color: var(--yt); color: var(--yt); }
+.platform-btn.active-youtubevideo { background: rgba(255,107,107,0.08); border-color: var(--rl); color: var(--rl); }
+.platform-btn.active-reelscript   { background: rgba(255,107,107,0.08); border-color: var(--rl); color: var(--rl); }
 
 /* Tone buttons */
 .tone-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 .tone-btn {
-  padding: 7px 14px; border-radius: 20px; border: 1px solid #1e2735;
-  background: #0d1117; color: #677492; font-size: 12px; cursor: pointer; transition: all 0.15s;
+  padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s;
 }
-.tone-btn:hover { border-color: #7c3aed; color: #a78bfa; }
-.tone-btn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+.tone-btn:hover { border-color: var(--accent); color: var(--accent-2); }
+.tone-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .generate-btn {
-  padding: 11px 24px; background: #7c3aed; color: #fff; border: none;
-  border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: background 0.15s; align-self: flex-start;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--accent), #6d28d9);
+  color: #fff; border: none; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s; align-self: flex-start;
 }
-.generate-btn:hover { background: #6d28d9; }
-.generate-btn:disabled { background: #2d3748; cursor: not-allowed; }
+.generate-btn:hover { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
+.generate-btn:disabled { background: var(--text-dim); cursor: not-allowed; box-shadow: none; }
 
 /* Post cards */
 .posts-grid { display: flex; flex-direction: column; gap: 12px; }
-.post-card { background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 16px; }
-.post-card.tweet-card { border-color: #1a3a4a; }
-.post-card.thread-card { border-left: 3px solid #9333ea; }
-.post-card.linkedin-card { border-left: 3px solid #0a66c2; }
-.post-card.instagram-card { border-left: 3px solid #e1306c; }
-.post-card.tiktok-card { border-left: 3px solid #ff0050; }
-.post-card.youtube-card { border-left: 3px solid #ff0000; }
-.post-card.youtubevideo-card { border-left: 3px solid #ff6b6b; }
-.post-card.reelscript-card   { border-left: 3px solid #ff6b6b; }
-.post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; font-family: monospace; color: #7c3aed; }
-.tweet-card .post-num { color: #1da1f2; }
-.thread-card .post-num { color: #c084fc; }
-.linkedin-card .post-num { color: #0a66c2; }
-.instagram-card .post-num { color: #e1306c; }
-.tiktok-card .post-num { color: #ff0050; }
-.youtube-card .post-num { color: #ff0000; }
-.char-count { font-size: 10px; color: #4d5e78; margin-bottom: 6px; }
+.post-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px; border-left: 3px solid var(--border);
+}
+.post-card.tweet-card    { border-left-color: var(--tw); }
+.post-card.thread-card   { border-left-color: #9333ea; }
+.post-card.linkedin-card { border-left-color: var(--li); }
+.post-card.instagram-card{ border-left-color: var(--ig); }
+.post-card.tiktok-card   { border-left-color: var(--tt); }
+.post-card.youtube-card  { border-left-color: var(--yt); }
+.post-card.youtubevideo-card { border-left-color: var(--rl); }
+.post-card.reelscript-card   { border-left-color: var(--rl); }
+.post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; color: var(--accent-2); }
+.tweet-card     .post-num { color: var(--tw); }
+.thread-card    .post-num { color: #c084fc; }
+.linkedin-card  .post-num { color: var(--li); }
+.instagram-card .post-num { color: var(--ig); }
+.tiktok-card    .post-num { color: var(--tt); }
+.youtube-card   .post-num { color: var(--yt); }
+.char-count { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
 .char-count.over { color: #fc8181; }
-.post-text { font-size: 13px; line-height: 1.7; color: #c8d6e8; white-space: pre-wrap; }
-.thread-connector { width: 2px; height: 14px; background: #1e2735; margin: 0 0 0 20px; }
+.post-text { font-size: 13px; line-height: 1.75; color: var(--text-secondary); white-space: pre-wrap; }
+.thread-connector { width: 2px; height: 14px; background: var(--border); margin: 0 0 0 20px; }
 .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
 .copy-btn {
-  padding: 5px 12px; background: transparent; border: 1px solid #1e2735;
-  color: #677492; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s;
+  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
 }
-.copy-btn:hover { border-color: #22c55e; color: #22c55e; }
-.copy-btn.copied { border-color: #22c55e; color: #22c55e; }
+.copy-btn:hover { border-color: var(--green); color: var(--green); }
+.copy-btn.copied { border-color: var(--green); color: var(--green); }
 .save-btn {
-  padding: 5px 12px; background: transparent; border: 1px solid #1e2735;
-  color: #677492; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s;
+  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
 }
-.save-btn:hover { border-color: #f0a500; color: #f0a500; }
-.save-btn.saved { border-color: #f0a500; color: #f0a500; }
-
+.save-btn:hover { border-color: var(--gold); color: var(--gold); }
+.save-btn.saved { border-color: var(--gold); color: var(--gold); }
 .btn-sm {
-  padding: 5px 12px; background: transparent; border: 1px solid #1e2735;
-  color: #677492; border-radius: 6px; font-size: 11px; font-family: monospace;
+  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px;
   cursor: pointer; transition: all 0.15s;
 }
-.btn-sm:hover { border-color: #a78bfa; color: #a78bfa; }
+.btn-sm:hover { border-color: var(--accent-2); color: var(--accent-2); }
 
 /* ── TRENDS TAB layout ── */
-#tab-trends { display: none; height: calc(100vh - 54px); grid-template-columns: 380px 1fr; }
+#tab-trends { display: none; height: calc(100vh - 56px); grid-template-columns: 380px 1fr; }
 #tab-trends.active { display: grid; }
 
-.feed { border-right: 1px solid #1e2735; display: flex; flex-direction: column; background: #0d1117; }
-.feed-top { padding: 12px 16px; border-bottom: 1px solid #1e2735; display: flex; align-items: center; justify-content: space-between; }
-.feed-label { font-size: 10px; font-family: monospace; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; }
-.feed-count { font-size: 11px; font-family: monospace; color: #f0a500; background: rgba(240,165,0,0.1); padding: 2px 8px; border-radius: 20px; }
+.feed { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-surface); }
+.feed-top { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.feed-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+.feed-count { font-size: 11px; color: var(--gold); background: var(--gold-dim); padding: 2px 8px; border-radius: 20px; }
 .trend-list { overflow-y: auto; flex: 1; }
 .trend-list::-webkit-scrollbar { width: 3px; }
-.trend-list::-webkit-scrollbar-thumb { background: #1e2735; }
-.trend-item { padding: 12px 16px; border-bottom: 1px solid #111927; cursor: pointer; transition: background 0.1s; position: relative; border-left: 3px solid transparent; }
-.trend-item:hover { background: #111927; border-left-color: #2d3a52; }
-.trend-item.active { background: #111927; border-left-color: #f0a500; }
+.trend-list::-webkit-scrollbar-thumb { background: var(--border); }
+.trend-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--border-dim);
+  cursor: pointer; transition: background 0.1s; position: relative;
+  border-left: 3px solid transparent;
+}
+.trend-item:hover { background: var(--bg-raised); border-left-color: var(--text-dim); }
+.trend-item.active { background: var(--bg-raised); border-left-color: var(--gold); }
 .item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.score-badge { font-family: monospace; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-.score-high  { background: rgba(34,197,94,0.15); color: #22c55e; }
-.score-viral { background: rgba(239,68,68,0.15); color: #ef4444; }
-.score-med   { background: rgba(234,179,8,0.15); color: #eab308; }
+.score-badge { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+.score-high  { background: rgba(34,197,94,0.15); color: var(--green); }
+.score-viral { background: rgba(239,68,68,0.15); color: var(--red); }
+.score-med   { background: rgba(234,179,8,0.15); color: var(--amber); }
 .score-low   { background: rgba(107,114,128,0.15); color: #6b7280; }
-.item-source { font-family: monospace; font-size: 10px; color: #4d5e78; flex: 1; }
-.item-time   { font-family: monospace; font-size: 10px; color: #4d5e78; }
-.item-time.fresh { color: #22c55e; }
-.item-title  { font-size: 13px; line-height: 1.5; color: #c8d6e8; margin-bottom: 5px; }
-.item-reason { font-size: 11px; color: #4d5e78; font-style: italic; }
+.item-source { font-size: 10px; color: var(--text-dim); flex: 1; }
+.item-time   { font-size: 10px; color: var(--text-dim); }
+.item-time.fresh { color: var(--green); }
+.item-title  { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 5px; }
+.item-reason { font-size: 11px; color: var(--text-muted); font-style: italic; }
 
 /* Trend detail */
-.detail { display: flex; flex-direction: column; overflow: hidden; background: #0a0d14; }
+.detail { display: flex; flex-direction: column; overflow: hidden; background: var(--bg-base); }
 .detail-inner { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
 .detail-inner::-webkit-scrollbar { width: 3px; }
-.detail-inner::-webkit-scrollbar-thumb { background: #1e2735; }
-.score-header { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; }
-.dial { width: 80px; height: 80px; flex-shrink: 0; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px solid; }
-.dial-number { font-size: 22px; font-weight: 700; font-family: monospace; line-height: 1; }
-.dial-label  { font-size: 9px; color: #677492; letter-spacing: 0.05em; margin-top: 2px; }
-.dial-viral  { border-color: #ef4444; color: #ef4444; }
-.dial-high   { border-color: #22c55e; color: #22c55e; }
-.dial-med    { border-color: #eab308; color: #eab308; }
-.dial-low    { border-color: #4d5e78; color: #4d5e78; }
+.detail-inner::-webkit-scrollbar-thumb { background: var(--border); }
+.score-header {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px;
+  display: flex; align-items: center; gap: 20px;
+}
+.dial-svg { flex-shrink: 0; }
 .score-meta  { flex: 1; }
 .score-tier  { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.score-reason { font-size: 12px; color: #677492; line-height: 1.5; }
-.breakdown { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
-.breakdown-title { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
-.bar-label { font-size: 11px; color: #677492; width: 130px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 6px; background: #1e2735; border-radius: 3px; overflow: hidden; }
-.bar-fill  { height: 100%; border-radius: 3px; background: #f0a500; transition: width 0.4s ease; }
-.bar-val   { font-family: monospace; font-size: 11px; color: #a78bfa; width: 36px; text-align: right; }
-.content-card { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
-.card-label   { font-family: monospace; font-size: 10px; color: #4d5e78; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
-.card-title   { font-size: 15px; font-weight: 600; color: #dce4f0; line-height: 1.5; margin-bottom: 8px; }
-.card-summary { font-size: 12px; color: #677492; line-height: 1.65; margin-bottom: 12px; }
+.score-reason { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.breakdown { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
+.breakdown-title { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+.bar-label { font-size: 11px; color: var(--text-muted); width: 130px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: var(--gold); }
+.bar-fill.good { background: var(--green); }
+.bar-fill.ok   { background: var(--amber); }
+.bar-fill.low  { background: var(--red); }
+.bar-val   { font-size: 11px; color: var(--accent-2); width: 36px; text-align: right; }
+.content-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
+.card-label   { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.card-title   { font-size: 15px; font-weight: 600; color: var(--text-primary); line-height: 1.5; margin-bottom: 8px; }
+.card-summary { font-size: 12px; color: var(--text-muted); line-height: 1.65; margin-bottom: 12px; }
 .card-footer  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.meta-pill    { font-family: monospace; font-size: 10px; background: #111927; color: #677492; padding: 3px 8px; border-radius: 12px; border: 1px solid #1e2735; }
-.meta-pill.accent { color: #f0a500; border-color: rgba(240,165,0,0.2); background: rgba(240,165,0,0.05); }
-.link-btn     { margin-left: auto; font-size: 11px; color: #a78bfa; text-decoration: none; padding: 4px 10px; border: 1px solid #2d2060; border-radius: 6px; font-family: monospace; transition: all 0.12s; }
-.link-btn:hover { background: #2d2060; }
+.meta-pill    { font-size: 10px; background: var(--bg-raised); color: var(--text-muted); padding: 3px 8px; border-radius: 12px; border: 1px solid var(--border); }
+.meta-pill.accent { color: var(--gold); border-color: rgba(245,158,11,0.2); background: var(--gold-dim); }
+.link-btn     { margin-left: auto; font-size: 11px; color: var(--accent-2); text-decoration: none; padding: 4px 10px; border: 1px solid rgba(124,58,237,0.3); border-radius: var(--r-sm); transition: all 0.12s; }
+.link-btn:hover { background: rgba(124,58,237,0.1); }
 .stats-row { display: flex; gap: 12px; }
-.stat-box  { flex: 1; background: #0d1117; border: 1px solid #1e2735; border-radius: 10px; padding: 12px; text-align: center; }
-.stat-num  { font-size: 20px; font-weight: 700; font-family: monospace; color: #dce4f0; }
-.stat-lbl  { font-size: 10px; color: #4d5e78; font-family: monospace; letter-spacing: 0.04em; margin-top: 2px; }
-.opp-box   { background: rgba(240,165,0,0.05); border: 1px solid rgba(240,165,0,0.2); border-radius: 12px; padding: 16px; }
-.opp-title { font-size: 12px; font-weight: 600; color: #f0a500; margin-bottom: 8px; }
-.opp-text  { font-size: 12px; color: #8b9ab3; line-height: 1.65; }
+.stat-box  { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px; text-align: center; }
+.stat-num  { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.stat-lbl  { font-size: 10px; color: var(--text-dim); letter-spacing: 0.04em; margin-top: 2px; }
+.opp-box   { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--r-lg); padding: 16px; }
+.opp-title { font-size: 12px; font-weight: 600; color: var(--gold); margin-bottom: 8px; }
+.opp-text  { font-size: 12px; color: var(--text-secondary); line-height: 1.65; }
 .rewrite-btn {
-  padding: 11px 20px; background: linear-gradient(135deg, #7c3aed, #1da1f2);
-  color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+  padding: 12px 20px; background: linear-gradient(135deg, var(--accent), var(--tw));
+  color: #fff; border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 600;
   cursor: pointer; transition: opacity 0.15s; width: 100%;
 }
 .rewrite-btn:hover { opacity: 0.9; }
-.rewrite-btn:disabled { background: #2d3748; cursor: not-allowed; }
-.rewrite-result { background: #0d1117; border: 1px solid #1e2735; border-radius: 12px; padding: 16px; }
+.rewrite-btn:disabled { background: var(--text-dim); cursor: not-allowed; }
+.rewrite-result { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
 .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-.analysis-item { background: #111927; border-radius: 8px; padding: 10px; }
-.analysis-key  { font-size: 10px; color: #4d5e78; font-family: monospace; text-transform: uppercase; margin-bottom: 4px; }
-.analysis-val  { font-size: 12px; color: #a78bfa; line-height: 1.5; }
-.rewrite-post  { background: #111927; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-.rewrite-post-label { font-size: 10px; color: #677492; font-family: monospace; text-transform: uppercase; margin-bottom: 8px; }
-.rewrite-post-text  { font-size: 13px; color: #dce4f0; line-height: 1.7; white-space: pre-wrap; }
+.analysis-item { background: var(--bg-raised); border-radius: var(--r-sm); padding: 10px; }
+.analysis-key  { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
+.analysis-val  { font-size: 12px; color: var(--accent-2); line-height: 1.5; }
+.rewrite-post  { background: var(--bg-raised); border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px; }
+.rewrite-post-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.rewrite-post-text  { font-size: 13px; color: var(--text-primary); line-height: 1.7; white-space: pre-wrap; }
 
 /* Loader & Error */
-.loader { text-align: center; color: #7c3aed; padding: 24px; font-size: 13px; }
-.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #1e2735; border-top-color: #f0a500; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+.loader { text-align: center; color: var(--accent-2); padding: 24px; font-size: 13px; }
+.spin {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid var(--border); border-top-color: var(--gold);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
-.error-msg { color: #fc8181; font-size: 12px; padding: 10px 14px; background: #2d1515; border-radius: 8px; }
+.error-msg { color: #fc8181; font-size: 12px; padding: 10px 14px; background: rgba(252,129,129,0.06); border: 1px solid rgba(252,129,129,0.2); border-radius: var(--r-sm); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  #tab-news { grid-template-columns: 1fr; grid-template-rows: 250px 1fr; }
+  #tab-news.active { display: flex; flex-direction: column; }
+  .left-panel { height: 250px; border-right: none; border-bottom: 1px solid var(--border); }
+  #tab-trends { grid-template-columns: 1fr; }
+  #tab-trends.active { display: flex; flex-direction: column; }
+  .feed { height: 250px; border-right: none; border-bottom: 1px solid var(--border); }
+  .stats-row-dash { flex-direction: column; }
+  .platform-buttons { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+  .analysis-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
 <header>
   <div class="brand">
-    <span style="font-size:18px">🤖</span>
+    <span class="brand-icon">🤖</span>
     <span class="brand-name">AI News Agent</span>
   </div>
   <div class="tabs">
@@ -342,94 +520,100 @@ header {
 <div class="tab-panel active" id="tab-dashboard">
 
   <!-- 🚀 Auto Viral Feed -->
-  <div class="dash-section">
+  <div class="dash-section" style="padding:24px 24px 0">
     <div class="auto-suggest-header">
       <div class="dash-section-title" style="margin-bottom:0;border:none;padding:0">🚀 Auto Viral Suggestions — Ready to Post</div>
       <button class="auto-refresh-btn" id="auto-refresh-btn" onclick="loadAutoSuggest()">🔄 Refresh Suggestions</button>
     </div>
-    <div id="auto-suggest-output">
+    <div id="auto-suggest-output" style="margin-top:14px">
       <div class="loader"><span class="spin"></span>Loading viral suggestions...</div>
     </div>
   </div>
 
-  <!-- Overview Stats -->
-  <div class="dash-section">
-    <div class="dash-section-title">Today's Overview</div>
-    <div class="stats-row-dash">
-      <div class="stat-box-dash">
-        <div class="stat-num" id="dash-trend-count">—</div>
-        <div class="stat-lbl">TRENDS SCORED</div>
-      </div>
-      <div class="stat-box-dash">
-        <div class="stat-num" id="dash-session-posts">0</div>
-        <div class="stat-lbl">POSTS GENERATED</div>
-      </div>
-      <div class="stat-box-dash">
-        <div class="stat-num" id="dash-viral-opps">—</div>
-        <div class="stat-lbl">VIRAL OPPS (65+)</div>
-      </div>
-      <div class="stat-box-dash">
-        <div class="stat-num" id="dash-saved-count">0</div>
-        <div class="stat-lbl">SAVED DRAFTS</div>
-      </div>
-    </div>
-  </div>
+  <div style="padding:0 24px">
 
-  <!-- Posting Time Reminder -->
-  <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.8;">
-    🕗 Best time to post: <strong style="color:#a78bfa">8:30–9:30pm PKT</strong> (primary) &nbsp;·&nbsp; <strong style="color:#a78bfa">1:00–1:30pm PKT</strong> (secondary)
-    &nbsp;&nbsp;<span style="color:#fc8181">❌ Avoid: 9am–12pm, midnight posts</span>
-  </div>
-
-  <!-- Weekly Schedule -->
-  <div class="dash-section">
-    <div class="dash-section-title" style="cursor:pointer" onclick="toggleWeeklyPlan()">📅 This Week's Content Plan <span id="weekly-toggle" style="float:right;font-size:10px;color:#677492">▼ expand</span></div>
-    <div id="weekly-plan-body" style="display:none;">
-      <div class="plan-item"><span class="plan-priority">MON</span><span class="plan-topic">🎬 AI LAB experiment — tool demo (screen record)</span></div>
-      <div class="plan-item"><span class="plan-priority">TUE</span><span class="plan-topic">🎬 "Ye galti mat karo" — common AI mistake Reel</span></div>
-      <div class="plan-item"><span class="plan-priority">WED</span><span class="plan-topic">🎬 Urdu prompt of the day &nbsp;+&nbsp; 📊 Carousel post</span></div>
-      <div class="plan-item"><span class="plan-priority">THU</span><span class="plan-topic">🎬 Student result / before-after &nbsp;+&nbsp; 🔴 Live at 9pm</span></div>
-      <div class="plan-item"><span class="plan-priority">FRI</span><span class="plan-topic">🎬 "AI se ye kaam 60 sec mein" &nbsp;+&nbsp; 💬 Opinion text post</span></div>
-      <div class="plan-item"><span class="plan-priority">SAT</span><span class="plan-topic">🎬 Weekly AI news roundup &nbsp;+&nbsp; 📢 Offer post</span></div>
-      <div class="plan-item"><span class="plan-priority">SUN</span><span class="plan-topic">📦 Batch recording day — prep next week's Reels</span></div>
-    </div>
-  </div>
-
-  <!-- Today's Content Plan from Google Sheets -->
-  <div class="dash-section">
-    <div class="dash-section-title">Today's Content Plan (Google Sheets)</div>
-    <div class="sheet-input-row">
-      <input class="sheet-input" id="sheet-url-input"
-             placeholder="Paste your Google Sheets share URL here (make sheet public first)..." />
-      <button class="sheet-load-btn" onclick="loadMorningPlan()">📋 Load Plan</button>
-    </div>
-    <div id="morning-plan-output">
-      <div style="font-size:12px;color:#4d5e78">
-        ✅ <strong style="color:#a78bfa">How to connect:</strong>
-        Open your Google Sheet → Share → "Anyone with the link" → Copy link → Paste above.
-        Your sheet needs columns: <code style="color:#f0a500">Date | Topic | Platform | Notes</code>
+    <!-- Overview Stats -->
+    <div class="dash-section">
+      <div class="dash-section-title">Today's Overview</div>
+      <div class="stats-row-dash">
+        <div class="stat-box-dash">
+          <div class="stat-num" id="dash-trend-count">—</div>
+          <div class="stat-lbl">📡 TRENDS SCORED</div>
+        </div>
+        <div class="stat-box-dash">
+          <div class="stat-num" id="dash-session-posts">0</div>
+          <div class="stat-lbl">✍️ POSTS GENERATED</div>
+        </div>
+        <div class="stat-box-dash">
+          <div class="stat-num" id="dash-viral-opps">—</div>
+          <div class="stat-lbl">🔥 VIRAL OPPS (65+)</div>
+        </div>
+        <div class="stat-box-dash">
+          <div class="stat-num" id="dash-saved-count">0</div>
+          <div class="stat-lbl">💾 SAVED DRAFTS</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Quick Generate from Top Trends -->
-  <div class="dash-section">
-    <div class="dash-section-title">Top Viral Opportunities — Quick Open</div>
-    <div id="quick-trends-list">
-      <div style="font-size:12px;color:#4d5e78">
-        Load trends from the <strong style="color:#a78bfa">📡 Viral Intelligence</strong> tab to see top opportunities here.
+    <!-- Posting Time Reminder -->
+    <div class="posting-banner">
+      <span>🕗 Best time to post: <strong>8:30–9:30pm PKT</strong> (primary) &nbsp;·&nbsp; <strong>1:00–1:30pm PKT</strong> (secondary)</span>
+      <span class="avoid">❌ Avoid: 9am–12pm, midnight posts</span>
+    </div>
+
+    <!-- Weekly Schedule -->
+    <div class="dash-section">
+      <div class="dash-section-title" style="cursor:pointer;user-select:none" onclick="toggleWeeklyPlan()">
+        📅 This Week's Content Plan
+        <span id="weekly-toggle" style="float:right;font-size:10px;color:var(--text-muted)">▼ expand</span>
+      </div>
+      <div id="weekly-plan-body" style="display:none;">
+        <div class="plan-item"><span class="plan-priority mon">MON</span><span class="plan-topic">🎬 AI LAB experiment — tool demo (screen record)</span></div>
+        <div class="plan-item"><span class="plan-priority tue">TUE</span><span class="plan-topic">🎬 "Ye galti mat karo" — common AI mistake Reel</span></div>
+        <div class="plan-item"><span class="plan-priority wed">WED</span><span class="plan-topic">🎬 Urdu prompt of the day &nbsp;+&nbsp; 📊 Carousel post</span></div>
+        <div class="plan-item"><span class="plan-priority thu">THU</span><span class="plan-topic">🎬 Student result / before-after &nbsp;+&nbsp; 🔴 Live at 9pm</span></div>
+        <div class="plan-item"><span class="plan-priority fri">FRI</span><span class="plan-topic">🎬 "AI se ye kaam 60 sec mein" &nbsp;+&nbsp; 💬 Opinion text post</span></div>
+        <div class="plan-item"><span class="plan-priority sat">SAT</span><span class="plan-topic">🎬 Weekly AI news roundup &nbsp;+&nbsp; 📢 Offer post</span></div>
+        <div class="plan-item"><span class="plan-priority sun">SUN</span><span class="plan-topic">📦 Batch recording day — prep next week's Reels</span></div>
       </div>
     </div>
-  </div>
 
-  <!-- Content Library -->
-  <div class="dash-section">
-    <div class="dash-section-title">Saved Drafts (Content Library)</div>
-    <div id="library-output">
-      <div style="font-size:12px;color:#4d5e78">No saved drafts yet. Generate content in the News Feed tab and click 💾 Save.</div>
+    <!-- Today's Content Plan from Google Sheets -->
+    <div class="dash-section">
+      <div class="dash-section-title">Today's Content Plan (Google Sheets)</div>
+      <div class="sheet-input-row">
+        <input class="sheet-input" id="sheet-url-input"
+               placeholder="Paste your Google Sheets share URL here (make sheet public first)..." />
+        <button class="sheet-load-btn" onclick="loadMorningPlan()">📋 Load Plan</button>
+      </div>
+      <div id="morning-plan-output">
+        <div style="font-size:12px;color:var(--text-muted)">
+          ✅ <strong style="color:var(--accent-2)">How to connect:</strong>
+          Open your Google Sheet → Share → "Anyone with the link" → Copy link → Paste above.
+          Your sheet needs columns: <code style="color:var(--gold)">Date | Topic | Platform | Notes</code>
+        </div>
+      </div>
     </div>
-  </div>
 
+    <!-- Quick Generate from Top Trends -->
+    <div class="dash-section">
+      <div class="dash-section-title">Top Viral Opportunities — Quick Open</div>
+      <div id="quick-trends-list">
+        <div style="font-size:12px;color:var(--text-muted)">
+          Load trends from the <strong style="color:var(--accent-2)">📡 Viral Intelligence</strong> tab to see top opportunities here.
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Library -->
+    <div class="dash-section">
+      <div class="dash-section-title">Saved Drafts (Content Library)</div>
+      <div id="library-output">
+        <div style="font-size:12px;color:var(--text-muted)">No saved drafts yet. Generate content in the News Feed tab and click 💾 Save.</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- ══ TAB 2: NEWS FEED ══ -->
@@ -560,7 +744,7 @@ async function loadMorningPlan() {
     const data = await res.json();
     if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail}</div>`; return; }
     if (!data.plan.length) {
-      out.innerHTML = `<div style="font-size:12px;color:#4d5e78">No entries found for today (${data.date}). Make sure your sheet has a Date column with today's date.</div>`;
+      out.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">No entries found for today (${data.date}). Make sure your sheet has a Date column with today's date.</div>`;
       return;
     }
     out.innerHTML = data.plan.map(item => `
@@ -609,7 +793,7 @@ function renderLibrary() {
   const el = document.getElementById('library-output');
   if (!el) return;
   if (!lib.length) {
-    el.innerHTML = '<div style="font-size:12px;color:#4d5e78">No saved drafts yet. Generate content and click 💾 Save.</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">No saved drafts yet. Generate content and click 💾 Save.</div>';
     updateDashStats(); return;
   }
   el.innerHTML = lib.map(item => `
@@ -623,7 +807,7 @@ function renderLibrary() {
       <div class="library-actions">
         <button class="copy-btn" onclick="copyText(this,${JSON.stringify(item.content)})">📋 Copy</button>
         <button class="copy-btn" onclick="toggleLibExpand('${item.id}',${JSON.stringify(item.content)})">↕ Expand</button>
-        <button class="copy-btn" style="color:#fc8181;border-color:#2d1515" onclick="deleteFromLibrary('${item.id}')">🗑 Delete</button>
+        <button class="copy-btn" style="color:#fc8181;border-color:rgba(252,129,129,0.3)" onclick="deleteFromLibrary('${item.id}')">🗑 Delete</button>
       </div>
     </div>`).join('');
   updateDashStats();
@@ -659,7 +843,7 @@ async function loadNews(forceRefresh = false) {
     const data = await res.json();
     countEl.textContent = `${data.count} articles (24hr)`;
     if (!data.articles.length) {
-      list.innerHTML = '<div class="loader" style="color:#4d5e78">No fresh AI news found. Try refreshing.</div>';
+      list.innerHTML = '<div class="loader" style="color:var(--text-muted)">No fresh AI news found. Try refreshing.</div>';
       return;
     }
     list.innerHTML = data.articles.map((a, i) => `
@@ -689,7 +873,7 @@ function selectArticle(i) {
 const PLATFORM_CLASS = {
   facebook: 'active-fb', tweet: 'active-tweet', thread: 'active-thread',
   linkedin: 'active-linkedin', instagram: 'active-instagram',
-  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtube',
+  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtubevideo',
   reelscript: 'active-reelscript'
 };
 
@@ -727,23 +911,23 @@ function renderRightPanel() {
     <div>
       <div class="section-label">Platform</div>
       <div class="platform-buttons">
-        <button class="platform-btn ${getPlatformClass('facebook')}" onclick="setPlatform('facebook')">📘 Facebook</button>
-        <button class="platform-btn ${getPlatformClass('tweet')}" onclick="setPlatform('tweet')">𝕏 Tweet</button>
-        <button class="platform-btn ${getPlatformClass('thread')}" onclick="setPlatform('thread')">🧵 X Thread</button>
-        <button class="platform-btn ${getPlatformClass('linkedin')}" onclick="setPlatform('linkedin')">💼 LinkedIn</button>
-        <button class="platform-btn ${getPlatformClass('instagram')}" onclick="setPlatform('instagram')">📸 Instagram</button>
-        <button class="platform-btn ${getPlatformClass('tiktok')}" onclick="setPlatform('tiktok')">🎵 TikTok</button>
-        <button class="platform-btn ${getPlatformClass('youtube')}" onclick="setPlatform('youtube')">▶️ YouTube Shorts</button>
-        <button class="platform-btn ${getPlatformClass('youtubevideo')}" onclick="setPlatform('youtubevideo')">🎬 YouTube Video</button>
-        <button class="platform-btn ${getPlatformClass('reelscript')}" onclick="setPlatform('reelscript')">🎬 Reel Script</button>
+        <button class="platform-btn ${getPlatformClass('facebook')}"    onclick="setPlatform('facebook')">📘 Facebook</button>
+        <button class="platform-btn ${getPlatformClass('tweet')}"       onclick="setPlatform('tweet')">𝕏 Tweet</button>
+        <button class="platform-btn ${getPlatformClass('thread')}"      onclick="setPlatform('thread')">🧵 X Thread</button>
+        <button class="platform-btn ${getPlatformClass('linkedin')}"    onclick="setPlatform('linkedin')">💼 LinkedIn</button>
+        <button class="platform-btn ${getPlatformClass('instagram')}"   onclick="setPlatform('instagram')">📸 Instagram</button>
+        <button class="platform-btn ${getPlatformClass('tiktok')}"      onclick="setPlatform('tiktok')">🎵 TikTok</button>
+        <button class="platform-btn ${getPlatformClass('youtube')}"     onclick="setPlatform('youtube')">▶️ YT Shorts</button>
+        <button class="platform-btn ${getPlatformClass('youtubevideo')}" onclick="setPlatform('youtubevideo')">🎬 YT Video</button>
+        <button class="platform-btn ${getPlatformClass('reelscript')}"  onclick="setPlatform('reelscript')">🎬 Reel Script</button>
       </div>
     </div>
     <div>
       <div class="section-label">Tone</div>
       <div class="tone-buttons">
         <button class="tone-btn ${selectedTone==='informative'?'active':''}" onclick="setTone('informative')">📊 Informative</button>
-        <button class="tone-btn ${selectedTone==='breaking'?'active':''}" onclick="setTone('breaking')">🚨 Breaking</button>
-        <button class="tone-btn ${selectedTone==='thought'?'active':''}" onclick="setTone('thought')">💭 Thought-Provoking</button>
+        <button class="tone-btn ${selectedTone==='breaking'?'active':''}"    onclick="setTone('breaking')">🚨 Breaking</button>
+        <button class="tone-btn ${selectedTone==='thought'?'active':''}"     onclick="setTone('thought')">💭 Thought-Provoking</button>
       </div>
     </div>
     <button class="generate-btn" id="gen-btn" onclick="generateContent()">${PLATFORM_LABEL[selectedPlatform]}</button>
@@ -862,7 +1046,7 @@ async function loadTrends(forceRefresh = false) {
     const data = await res.json();
     allTrends = data.trends || [];
     if (countEl) countEl.textContent = `${allTrends.length} scored`;
-    if (!allTrends.length) { if (list) list.innerHTML = '<div class="loader" style="color:#4d5e78">No trends found.</div>'; return; }
+    if (!allTrends.length) { if (list) list.innerHTML = '<div class="loader" style="color:var(--text-muted)">No trends found.</div>'; return; }
     if (list) list.innerHTML = allTrends.map((t, i) => `
       <div class="trend-item" id="ti-${i}" onclick="selectTrend(${i})">
         <div class="item-top">
@@ -887,6 +1071,25 @@ function selectTrend(i) {
   renderTrendDetail();
 }
 
+function makeSvgDial(score, sc) {
+  const colors = { viral: '#ef4444', high: '#22c55e', med: '#eab308', low: '#6b7280' };
+  const color = colors[sc] || '#6b7280';
+  const r = 32, cx = 40, cy = 40;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - score / 100);
+  return `<svg class="dial-svg" width="80" height="80" viewBox="0 0 80 80">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg-raised)" stroke-width="6"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+      stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"
+      style="transition:stroke-dashoffset 0.6s ease"/>
+    <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
+      fill="${color}" font-size="16" font-weight="700" font-family="JetBrains Mono,monospace">${score}</text>
+    <text x="${cx}" y="${cy+14}" text-anchor="middle" dominant-baseline="middle"
+      fill="var(--text-muted)" font-size="7" font-family="JetBrains Mono,monospace" letter-spacing="0.5">SCORE</text>
+  </svg>`;
+}
+
 function renderTrendDetail() {
   const t = selectedTrend;
   const sc = scClass(t.viral_score);
@@ -898,14 +1101,11 @@ function renderTrendDetail() {
     { label: 'Brand Fit',           key: 'brand_fit',           max: 20 },
     { label: 'Content Quality',     key: 'content_quality',     max: 10 },
   ];
-  const tierColor = sc==='viral'?'#ef4444':sc==='high'?'#22c55e':sc==='med'?'#eab308':'#6b7280';
+  const tierColor = sc==='viral'?'var(--red)':sc==='high'?'var(--green)':sc==='med'?'var(--amber)':'var(--text-muted)';
 
   document.getElementById('trend-detail').innerHTML = `
     <div class="score-header">
-      <div class="dial dial-${sc}">
-        <div class="dial-number">${t.viral_score}</div>
-        <div class="dial-label">SCORE</div>
-      </div>
+      ${makeSvgDial(t.viral_score, sc)}
       <div class="score-meta">
         <div class="score-tier" style="color:${tierColor}">${t.viral_tier||''}</div>
         <div class="score-reason">${t.viral_reason||''}</div>
@@ -913,12 +1113,16 @@ function renderTrendDetail() {
     </div>
     <div class="breakdown">
       <div class="breakdown-title">Score Breakdown</div>
-      ${bars.map(r => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      ${bars.map(r => {
+        const val = bd[r.key] || 0;
+        const pct = Math.round((val / r.max) * 100);
+        const cls = pct >= 75 ? 'good' : pct >= 40 ? 'ok' : 'low';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="bar-label">${r.label}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(((bd[r.key]||0)/r.max)*100)}%"></div></div>
-          <span class="bar-val">${(bd[r.key]||0).toFixed(1)}/${r.max}</span>
-        </div>`).join('')}
+          <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="bar-val">${val.toFixed(1)}/${r.max}</span>
+        </div>`;
+      }).join('')}
     </div>
     ${t.likes||t.reposts||t.replies ? `
     <div class="stats-row">
@@ -976,7 +1180,7 @@ async function rewritePost() {
         <div class="rewrite-post">
           <div class="rewrite-post-label">🐦 X Tweet</div>
           <div class="rewrite-post-text">${esc(data.x_tweet)}</div>
-          <div style="font-size:10px;color:${data.x_tweet.length>280?'#fc8181':'#4d5e78'};margin-top:6px">${data.x_tweet.length}/280</div>
+          <div style="font-size:10px;color:${data.x_tweet.length>280?'#fc8181':'var(--text-muted)'};margin-top:6px">${data.x_tweet.length}/280</div>
           <button class="copy-btn" style="margin-top:8px" onclick="copyText(this,${JSON.stringify(data.x_tweet)})">📋 Copy Tweet</button>
         </div>`:''}
         ${data.facebook?`
@@ -1038,7 +1242,7 @@ async function loadAutoSuggest() {
     const data = await res.json();
     autoSuggestions = data.suggestions || [];
     if (!autoSuggestions.length) {
-      out.innerHTML = '<div style="font-size:12px;color:#4d5e78">No viral trends found. Try again later.</div>';
+      out.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">No viral trends found. Try again later.</div>';
       return;
     }
     renderAutoSuggest();
@@ -1052,10 +1256,11 @@ async function loadAutoSuggest() {
 function renderAutoSuggest() {
   const out = document.getElementById('auto-suggest-output');
   if (!out) return;
-  out.innerHTML = autoSuggestions.map((s, i) => `
-    <div class="viral-card">
-      <div class="viral-card-header">
-        <span class="score-badge score-${scClass(s.viral_score)}">${s.viral_score}</span>
+  out.innerHTML = autoSuggestions.map((s, i) => {
+    const sc = scClass(s.viral_score);
+    return `<div class="viral-card">
+      <div class="viral-card-header tier-${sc}">
+        <span class="score-badge score-${sc}">${s.viral_score}</span>
         <span class="viral-card-title">${esc(s.title || trunc(s.text, 100))}</span>
         <span class="meta-pill" style="flex-shrink:0">${esc(s.source)}</span>
         ${s.time_ago ? `<span class="meta-pill" style="flex-shrink:0">${esc(s.time_ago)}</span>` : ''}
@@ -1070,20 +1275,22 @@ function renderAutoSuggest() {
             <button class="copy-btn" onclick="copyText(this,${JSON.stringify(s.tweet)})">📋 Copy Tweet</button>
             <button class="save-btn" onclick="saveSingle('tweet',${JSON.stringify(s.tweet)},${JSON.stringify(s.title||s.text)},this)">💾 Save</button>
           </div>
-        </div>` : '<div style="font-size:12px;color:#4d5e78">Tweet generation failed for this trend.</div>'}
+        </div>` : '<div style="font-size:12px;color:var(--text-muted)">Tweet generation failed for this trend.</div>'}
 
         <div class="viral-gen-row">
-          <span style="font-size:10px;color:#4d5e78;align-self:center;font-family:monospace">ALSO GENERATE:</span>
-          <button class="vg-btn fb" onclick="expandGen(${i},'facebook')">📘 Facebook</button>
-          <button class="vg-btn li" onclick="expandGen(${i},'linkedin')">💼 LinkedIn</button>
-          <button class="vg-btn ig" onclick="expandGen(${i},'instagram')">📸 Instagram</button>
-          <button class="vg-btn tt" onclick="expandGen(${i},'tiktok')">🎵 TikTok</button>
-          <button class="vg-btn yt" onclick="expandGen(${i},'youtube')">▶️ YT Shorts</button>
+          <span style="font-size:10px;color:var(--text-dim);align-self:center;font-family:'JetBrains Mono',monospace">ALSO GENERATE:</span>
+          <button class="vg-btn fb"  onclick="expandGen(${i},'facebook')">📘 Facebook</button>
+          <button class="vg-btn li"  onclick="expandGen(${i},'linkedin')">💼 LinkedIn</button>
+          <button class="vg-btn ig"  onclick="expandGen(${i},'instagram')">📸 Instagram</button>
+          <button class="vg-btn tt"  onclick="expandGen(${i},'tiktok')">🎵 TikTok</button>
+          <button class="vg-btn yt"  onclick="expandGen(${i},'youtube')">▶️ YT Shorts</button>
           <button class="vg-btn ytv" onclick="expandGen(${i},'youtubevideo')">🎬 YT Video</button>
+          <button class="vg-btn rl"  onclick="expandGen(${i},'reelscript')">🎬 Reel</button>
         </div>
         <div id="expand-gen-${i}"></div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function expandGen(idx, platform) {
@@ -1102,14 +1309,18 @@ async function expandGen(idx, platform) {
     const data = await res.json();
     if (!res.ok) { container.innerHTML = `<div class="error-msg">${data.detail || 'Error'}</div>`; return; }
 
-    const labelMap = { facebook: '📘 Facebook', linkedin: '💼 LinkedIn', instagram: '📸 Instagram', tiktok: '🎵 TikTok Script', youtube: '▶️ YouTube Shorts', youtubevideo: '🎬 YouTube Video' };
+    const labelMap = {
+      facebook: '📘 Facebook', linkedin: '💼 LinkedIn', instagram: '📸 Instagram',
+      tiktok: '🎵 TikTok Script', youtube: '▶️ YouTube Shorts',
+      youtubevideo: '🎬 YouTube Video', reelscript: '🎬 Reel Script'
+    };
     const label = labelMap[platform] || platform;
     sessionPostCount++; updateDashStats();
     container.innerHTML = `<div class="expand-gen">
       <div class="expand-gen-label">${label} Content</div>
       ${data.posts.map((p, i) => `
-        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #1e2735">
-          <div style="font-size:10px;color:#4d5e78;font-family:monospace;margin-bottom:4px">Variation ${i+1}</div>
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:4px">Variation ${i+1}</div>
           <div class="post-text">${esc(p)}</div>
           <div class="card-actions" style="margin-top:8px">
             <button class="copy-btn" onclick="copyText(this,${JSON.stringify(p)})">📋 Copy</button>
