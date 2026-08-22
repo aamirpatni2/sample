@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Al Roshan — Staff Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f4f1ec; color: #1a1a1a; min-height: 100vh; }
+    .header { background: #1a0a05; color: #fff; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 1.1rem; font-weight: 600; }
+    .header span { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+    .refresh-btn { background: #c8933a; color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .refresh-btn:hover { background: #a97728; }
+    .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .status-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab { padding: 8px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; background: #fff; color: #7a6552; transition: all 0.15s; }
+    .tab.active { background: #1a0a05; color: #fff; border-color: #1a0a05; }
+    .tab-count { display: inline-block; background: #c8933a; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 0.72rem; margin-left: 6px; }
+    .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .order-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid #e8ddd0; }
+    .order-card.NEW { border-left-color: #f59e0b; }
+    .order-card.PREPARING { border-left-color: #3b82f6; }
+    .order-card.READY { border-left-color: #10b981; }
+    .order-card.COMPLETED { border-left-color: #6b7280; opacity: 0.75; }
+    .order-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .order-id { font-size: 1rem; font-weight: 700; color: #1a0a05; }
+    .order-time { font-size: 0.75rem; color: #7a6552; }
+    .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-NEW { background: #fef3c7; color: #92400e; }
+    .badge-PREPARING { background: #dbeafe; color: #1e40af; }
+    .badge-READY { background: #d1fae5; color: #065f46; }
+    .badge-COMPLETED { background: #f3f4f6; color: #374151; }
+    .order-type { font-size: 0.8rem; font-weight: 500; color: #7a6552; margin-bottom: 8px; }
+    .customer-info { margin-bottom: 10px; }
+    .customer-info p { font-size: 0.82rem; color: #3d2b1f; margin-bottom: 2px; }
+    .items-list { border-top: 1px solid #e8ddd0; padding-top: 10px; margin-top: 10px; }
+    .item-row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 3px 0; color: #3d2b1f; }
+    .item-row .item-qty { color: #7a6552; margin-right: 4px; }
+    .item-row .item-price { font-weight: 500; }
+    .order-total { display: flex; justify-content: space-between; border-top: 1px solid #e8ddd0; margin-top: 8px; padding-top: 8px; font-weight: 700; font-size: 0.9rem; }
+    .status-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .status-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.15s; min-width: 80px; }
+    .btn-preparing { background: #dbeafe; color: #1e40af; }
+    .btn-preparing:hover { background: #bfdbfe; }
+    .btn-ready { background: #d1fae5; color: #065f46; }
+    .btn-ready:hover { background: #a7f3d0; }
+    .btn-completed { background: #f3f4f6; color: #374151; }
+    .btn-completed:hover { background: #e5e7eb; }
+    .empty { text-align: center; color: #7a6552; padding: 60px; font-size: 0.95rem; }
+    #loading { text-align: center; color: #7a6552; padding: 40px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🍽️ Al Roshan — Kitchen Dashboard</h1>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="last-updated">–</span>
+      <button class="refresh-btn" onclick="loadOrders()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="status-tabs">
+      <div class="tab active" data-filter="ALL" onclick="setFilter('ALL')">All Orders <span class="tab-count" id="count-ALL">0</span></div>
+      <div class="tab" data-filter="NEW" onclick="setFilter('NEW')">New <span class="tab-count" id="count-NEW">0</span></div>
+      <div class="tab" data-filter="PREPARING" onclick="setFilter('PREPARING')">Preparing <span class="tab-count" id="count-PREPARING">0</span></div>
+      <div class="tab" data-filter="READY" onclick="setFilter('READY')">Ready <span class="tab-count" id="count-READY">0</span></div>
+      <div class="tab" data-filter="COMPLETED" onclick="setFilter('COMPLETED')">Completed <span class="tab-count" id="count-COMPLETED">0</span></div>
+    </div>
+    <div id="loading">Loading orders...</div>
+    <div class="orders-grid" id="orders-grid"></div>
+  </div>
+
+  <script>
+    let allOrders = [];
+    let currentFilter = 'ALL';
+
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/orders');
+        allOrders = await res.json();
+        allOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        updateCounts();
+        renderOrders();
+        document.getElementById('loading').style.display = 'none';
+      } catch (e) {
+        document.getElementById('loading').textContent = 'Error loading orders. Is the server running?';
+      }
+    }
+
+    function updateCounts() {
+      const statuses = ['ALL', 'NEW', 'PREPARING', 'READY', 'COMPLETED'];
+      statuses.forEach(s => {
+        const count = s === 'ALL' ? allOrders.length : allOrders.filter(o => o.status === s).length;
+        document.getElementById(`count-${s}`).textContent = count;
+      });
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const grid = document.getElementById('orders-grid');
+      const filtered = currentFilter === 'ALL' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty">No orders in this category.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(order => {
+        const d = new Date(order.timestamp);
+        const timeStr = d.toLocaleString();
+        const t = order.totals || {};
+        const itemsHtml = (order.items || []).map(item => `
+          <div class="item-row">
+            <span><span class="item-qty">${item.quantity}×</span>${item.name}${item.selectedOptions && Object.keys(item.selectedOptions).length ? ' (' + Object.values(item.selectedOptions).join(', ') + ')' : ''}</span>
+            <span class="item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        `).join('');
+
+        const nextButtons = {
+          NEW: `<button class="status-btn btn-preparing" onclick="updateStatus('${order.id}','PREPARING')">→ Preparing</button>`,
+          PREPARING: `<button class="status-btn btn-ready" onclick="updateStatus('${order.id}','READY')">→ Ready</button>`,
+          READY: `<button class="status-btn btn-completed" onclick="updateStatus('${order.id}','COMPLETED')">→ Completed</button>`,
+          COMPLETED: '',
+        };
+
+        const customer = order.customer || {};
+        const deliveryInfo = order.orderType === 'delivery'
+          ? `<p>📍 ${customer.address || '–'}${customer.unit ? ', ' + customer.unit : ''}</p>${customer.instructions ? '<p>📝 ' + customer.instructions + '</p>' : ''}`
+          : `<p>🏪 Pickup${customer.instructions ? ' — ' + customer.instructions : ''}</p>`;
+
+        return `
+          <div class="order-card ${order.status}">
+            <div class="order-header">
+              <div>
+                <div class="order-id">${order.id}</div>
+                <div class="order-time">${timeStr}</div>
+              </div>
+              <span class="status-badge badge-${order.status}">${order.status}</span>
+            </div>
+            <div class="order-type">${order.orderType === 'delivery' ? '🛵 Delivery' : '🏃 Pickup'}</div>
+            <div class="customer-info">
+              <p><strong>${customer.name || '–'}</strong>${customer.phone ? ' · ' + customer.phone : ''}</p>
+              ${deliveryInfo}
+            </div>
+            <div class="items-list">
+              ${itemsHtml}
+              <div class="order-total"><span>Grand Total</span><span>$${(t.grandTotal || 0).toFixed(2)}</span></div>
+            </div>
+            <div class="status-actions">${nextButtons[order.status] || ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateStatus(orderId, newStatus) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (res.ok) loadOrders();
+      } catch (e) {
+        alert('Failed to update order status.');
+      }
+    }
+
+    loadOrders();
+    setInterval(loadOrders, 30000);
+  </script>
+</body>
+</html>

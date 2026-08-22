@@ -1,0 +1,35 @@
+[
+  {
+    "id": "PROMO001",
+    "code": "ROSHAN10",
+    "name": "10% Welcome Discount",
+    "description": "10% off your first order",
+    "type": "percentage",
+    "value": 10,
+    "minOrderAmount": 20,
+    "eligibility": "First-time orders over $20",
+    "active": true
+  },
+  {
+    "id": "PROMO002",
+    "code": "FREEDEL",
+    "name": "Free Delivery",
+    "description": "Free delivery on orders over $35",
+    "type": "free_delivery",
+    "value": 0,
+    "minOrderAmount": 35,
+    "eligibility": "Delivery orders over $35",
+    "active": true
+  },
+  {
+    "id": "PROMO003",
+    "code": "RAMADAN25",
+    "name": "Ramadan Special - 25% Off",
+    "description": "25% off all mains during Ramadan",
+    "type": "percentage",
+    "value": 25,
+    "minOrderAmount": 0,
+    "eligibility": "All mains during Ramadan promotion period",
+    "active": false
+  }
+]

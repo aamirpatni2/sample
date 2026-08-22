@@ -1,0 +1,15 @@
+{
+  "name": "al-roshan-restaurant",
+  "version": "1.0.0",
+  "description": "Al Roshan Restaurant AI ordering agent — RoshanBot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,152 @@
+[
+  {
+    "id": "AR001",
+    "name": "Lamb Shawarma Plate",
+    "description": "Slow-marinated lamb with garlic sauce, pickles, and fresh vegetables",
+    "price": 16.99,
+    "options": {
+      "serving": ["Plate with rice", "Wrap in pita"]
+    },
+    "allergens": ["gluten", "sesame"],
+    "available": true,
+    "category": "Mains"
+  },
+  {
+    "id": "AR002",
+    "name": "Chicken Shawarma",
+    "description": "Tender spiced chicken with tahini, fresh herbs, and your choice of side",
+    "price": 13.99,
+    "options": {
+      "serving": ["Plate with rice", "Wrap in pita"]
+    },
+    "allergens": ["gluten", "sesame"],
+    "available": true,
+    "category": "Mains"
+  },
+  {
+    "id": "AR003",
+    "name": "Mixed Grill Platter",
+    "description": "Assortment of kebabs, kofta, and grilled chicken with rice and salad",
+    "price": 24.99,
+    "options": {},
+    "allergens": ["gluten"],
+    "available": true,
+    "category": "Mains"
+  },
+  {
+    "id": "AR004",
+    "name": "Beef Kofta Kebab",
+    "description": "Spiced ground beef kebabs grilled over charcoal, served with grilled vegetables and rice",
+    "price": 15.99,
+    "options": {
+      "quantity": ["2 skewers", "4 skewers"]
+    },
+    "allergens": [],
+    "available": true,
+    "category": "Mains"
+  },
+  {
+    "id": "AR005",
+    "name": "Falafel Wrap",
+    "description": "House-made falafel with hummus, pickled vegetables, and chili sauce in flatbread",
+    "price": 10.99,
+    "options": {},
+    "allergens": ["gluten", "sesame"],
+    "available": true,
+    "category": "Mains"
+  },
+  {
+    "id": "AR006",
+    "name": "Hummus with Pita",
+    "description": "Creamy house hummus drizzled with olive oil and paprika, served with warm pita bread",
+    "price": 7.99,
+    "options": {},
+    "allergens": ["gluten", "sesame"],
+    "available": true,
+    "category": "Starters"
+  },
+  {
+    "id": "AR007",
+    "name": "Lentil Soup",
+    "description": "Silky red lentil soup spiced with cumin and turmeric, finished with lemon and crispy onions",
+    "price": 6.99,
+    "options": {},
+    "allergens": [],
+    "available": true,
+    "category": "Starters"
+  },
+  {
+    "id": "AR008",
+    "name": "Fattoush Salad",
+    "description": "Crispy pita chips with tomatoes, cucumbers, radishes, fresh mint, and sumac dressing",
+    "price": 8.99,
+    "options": {
+      "size": ["Regular", "Large"]
+    },
+    "allergens": ["gluten"],
+    "available": true,
+    "category": "Salads"
+  },
+  {
+    "id": "AR009",
+    "name": "Tabbouleh",
+    "description": "Traditional parsley salad with bulgur wheat, tomatoes, lemon, and olive oil",
+    "price": 7.99,
+    "options": {},
+    "allergens": ["gluten"],
+    "available": true,
+    "category": "Salads"
+  },
+  {
+    "id": "AR010",
+    "name": "Knafeh",
+    "description": "Traditional cheese pastry soaked in sweet rose syrup, topped with crushed pistachios",
+    "price": 7.99,
+    "options": {},
+    "allergens": ["gluten", "dairy", "nuts"],
+    "available": true,
+    "category": "Desserts"
+  },
+  {
+    "id": "AR011",
+    "name": "Baklava (3 pieces)",
+    "description": "Flaky pastry layered with honey, walnuts, and spices",
+    "price": 5.99,
+    "options": {},
+    "allergens": ["gluten", "nuts", "dairy"],
+    "available": true,
+    "category": "Desserts"
+  },
+  {
+    "id": "AR012",
+    "name": "Mint Lemonade",
+    "description": "Freshly squeezed lemon with garden mint, served chilled",
+    "price": 4.99,
+    "options": {
+      "size": ["Regular", "Large"]
+    },
+    "allergens": [],
+    "available": true,
+    "category": "Drinks"
+  },
+  {
+    "id": "AR013",
+    "name": "Jallab Juice",
+    "description": "Traditional grape and rose water juice with raisins and pine nuts",
+    "price": 5.49,
+    "options": {},
+    "allergens": ["nuts"],
+    "available": true,
+    "category": "Drinks"
+  },
+  {
+    "id": "AR014",
+    "name": "Arabic Coffee",
+    "description": "Cardamom-spiced Arabic coffee served with dates",
+    "price": 3.99,
+    "options": {},
+    "allergens": [],
+    "available": true,
+    "category": "Drinks"
+  }
+]

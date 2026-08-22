@@ -1,1347 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AI News Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-/* ── Design Tokens ── */
-:root {
-  --bg-base:    #07090f;
-  --bg-surface: #0c0f1a;
-  --bg-card:    #111827;
-  --bg-raised:  #1a2235;
-  --bg-hover:   #1e293b;
-  --border:     #1e2d3d;
-  --border-dim: #131e2c;
-  --text-primary:   #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted:     #4a5568;
-  --text-dim:       #2d3748;
-  --accent:      #7c3aed;
-  --accent-glow: rgba(124,58,237,0.25);
-  --accent-2:    #a78bfa;
-  --gold:        #f59e0b;
-  --gold-dim:    rgba(245,158,11,0.1);
-  --green:  #22c55e;
-  --red:    #ef4444;
-  --amber:  #eab308;
-  --blue:   #3b82f6;
-  --fb:   #1877f2;
-  --tw:   #1da1f2;
-  --li:   #0a66c2;
-  --ig:   #e1306c;
-  --tt:   #ff0050;
-  --yt:   #ff0000;
-  --rl:   #ff6b6b;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-}
-code, .mono, .stat-num, .score-badge, .source-tag, .time-tag,
-.plan-priority, .feed-label, .feed-count, .item-source, .item-time,
-.bar-val, .meta-pill, .library-date, .library-platform-badge,
-.expand-gen-label, .breakdown-title, .card-label {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* ── Shimmer skeleton ── */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-raised) 50%, var(--bg-card) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite;
-  border-radius: var(--r-sm);
-}
-
-/* ── Header ── */
-header {
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 20px; height: 56px;
-  display: flex; align-items: center; justify-content: space-between;
-  position: relative;
-}
-header::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, var(--accent), transparent 40%, transparent 60%, var(--gold));
-}
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-icon { font-size: 22px; }
-.brand-name {
-  font-size: 15px; font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-2), var(--gold));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Tabs ── */
-.tabs { display: flex; gap: 4px; }
-.tab-btn {
-  padding: 6px 16px; border-radius: var(--r-sm);
-  font-size: 13px; font-weight: 500;
-  background: transparent; border: none;
-  color: var(--text-muted); cursor: pointer; transition: all 0.15s;
-}
-.tab-btn:hover { background: var(--bg-raised); color: var(--text-primary); }
-.tab-btn.active {
-  background: var(--bg-raised); color: var(--accent-2); font-weight: 600;
-  box-shadow: 0 0 12px var(--accent-glow);
-}
-
-/* ── Tab Panels ── */
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* ── DASHBOARD TAB ── */
-#tab-dashboard { overflow-y: auto; height: calc(100vh - 56px); padding: 24px; }
-.dash-section { margin-bottom: 28px; }
-.dash-section-title {
-  font-size: 11px; color: var(--text-muted); font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
-  font-family: 'JetBrains Mono', monospace;
-}
-.stats-row-dash { display: flex; gap: 12px; flex-wrap: wrap; }
-.stat-box-dash {
-  flex: 1; min-width: 130px;
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
-  border: 1px solid var(--border); border-radius: var(--r-lg);
-  padding: 18px 16px; text-align: center; position: relative; overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.stat-box-dash:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-.stat-box-dash::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-}
-.stat-box-dash:nth-child(1)::before { background: var(--gold); }
-.stat-box-dash:nth-child(2)::before { background: var(--accent-2); }
-.stat-box-dash:nth-child(3)::before { background: var(--red); }
-.stat-box-dash:nth-child(4)::before { background: var(--green); }
-
-/* Posting banner */
-.posting-banner {
-  background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(245,158,11,0.05));
-  border: 1px solid rgba(124,58,237,0.25);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--r-md);
-  padding: 12px 16px; margin-bottom: 20px;
-  font-size: 12px; line-height: 1.8;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-}
-.posting-banner strong { color: var(--accent-2); }
-.posting-banner .avoid { color: #fc8181; }
-
-/* Weekly plan day chips */
-.plan-item {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 10px 14px; margin-bottom: 6px;
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  transition: background 0.12s;
-}
-.plan-item:hover { background: var(--bg-raised); }
-.plan-priority {
-  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
-  flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
-}
-.plan-priority.mon { background: rgba(59,130,246,0.15);  color: #60a5fa; }
-.plan-priority.tue { background: rgba(124,58,237,0.15);  color: #a78bfa; }
-.plan-priority.wed { background: rgba(34,197,94,0.15);   color: #4ade80; }
-.plan-priority.thu { background: rgba(245,158,11,0.15);  color: #fbbf24; }
-.plan-priority.fri { background: rgba(239,68,68,0.15);   color: #f87171; }
-.plan-priority.sat { background: rgba(20,184,166,0.15);  color: #2dd4bf; }
-.plan-priority.sun { background: rgba(251,191,36,0.15);  color: #fcd34d; }
-.plan-topic { flex: 1; font-size: 13px; color: var(--text-secondary); line-height: 1.4; min-width: 120px; }
-.plan-platform { font-size: 10px; color: var(--accent-2); background: rgba(124,58,237,0.1); padding: 2px 8px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; }
-.plan-notes { font-size: 11px; color: var(--text-muted); width: 100%; padding-top: 4px; }
-.sheet-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
-.sheet-input {
-  flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 8px 12px; color: var(--text-primary); font-size: 12px;
-  font-family: 'JetBrains Mono', monospace; outline: none;
-}
-.sheet-input:focus { border-color: var(--accent); }
-.sheet-load-btn {
-  padding: 8px 16px; background: var(--accent); color: #fff; border: none;
-  border-radius: var(--r-sm); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
-  transition: background 0.15s;
-}
-.sheet-load-btn:hover { background: #6d28d9; }
-.library-item {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 12px 14px; margin-bottom: 8px;
-}
-.library-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-.library-platform-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--bg-raised); color: var(--accent-2); }
-.library-headline { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 80px; }
-.library-date { font-size: 10px; color: var(--text-dim); }
-.library-content { font-size: 12px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; max-height: 80px; overflow: hidden; }
-.library-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.quick-trend {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 10px 12px; margin-bottom: 6px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  transition: background 0.12s;
-}
-.quick-trend:hover { background: var(--bg-raised); }
-.quick-trend-title { flex: 1; font-size: 12px; color: var(--text-secondary); line-height: 1.4; min-width: 100px; }
-.quick-gen-btn {
-  padding: 5px 12px; background: var(--gold-dim); border: 1px solid rgba(245,158,11,0.3);
-  color: var(--gold); border-radius: var(--r-sm); font-size: 11px; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; white-space: nowrap; transition: all 0.15s;
-}
-.quick-gen-btn:hover { background: rgba(245,158,11,0.2); }
-
-/* ── Auto Viral Suggestions ── */
-.viral-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg);
-  margin-bottom: 16px; overflow: hidden;
-  transition: box-shadow 0.15s;
-}
-.viral-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
-.viral-card-header {
-  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-  border-bottom: 1px solid var(--border); flex-wrap: wrap;
-  border-left: 3px solid var(--border-dim);
-}
-.viral-card-header.tier-viral { border-left-color: var(--red); }
-.viral-card-header.tier-high  { border-left-color: var(--green); }
-.viral-card-header.tier-med   { border-left-color: var(--amber); }
-.viral-card-header.tier-low   { border-left-color: var(--text-muted); }
-.viral-card-title { flex: 1; font-size: 13px; color: var(--text-primary); font-weight: 600; line-height: 1.4; min-width: 100px; }
-.viral-card-body { padding: 14px 16px; }
-.viral-tweet-box {
-  background: rgba(29,161,242,0.04); border: 1px solid rgba(29,161,242,0.15);
-  border-left: 2px solid var(--tw);
-  border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;
-}
-.viral-tweet-label { font-size: 10px; color: var(--tw); text-transform: uppercase; margin-bottom: 6px; font-weight: 700; }
-.viral-tweet-text { font-size: 13px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; }
-.viral-tweet-meta { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
-.viral-gen-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.vg-btn {
-  padding: 6px 12px; background: var(--bg-raised); border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
-}
-.vg-btn:hover   { border-color: var(--accent-2); color: var(--accent-2); }
-.vg-btn.fb:hover   { border-color: var(--fb);  color: var(--fb); }
-.vg-btn.li:hover   { border-color: var(--li);  color: var(--li); }
-.vg-btn.ig:hover   { border-color: var(--ig);  color: var(--ig); }
-.vg-btn.tt:hover   { border-color: var(--tt);  color: var(--tt); }
-.vg-btn.yt:hover   { border-color: var(--yt);  color: var(--yt); }
-.vg-btn.ytv:hover  { border-color: var(--rl);  color: var(--rl); }
-.vg-btn.rl:hover   { border-color: var(--rl);  color: var(--rl); }
-.expand-gen { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px; margin-top: 8px; }
-.expand-gen-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.06em; }
-.auto-suggest-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
-}
-.auto-refresh-btn {
-  padding: 7px 16px; background: linear-gradient(135deg, var(--accent), var(--gold));
-  color: #fff; border: none; border-radius: var(--r-sm); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: opacity 0.15s;
-}
-.auto-refresh-btn:hover { opacity: 0.85; }
-.auto-refresh-btn:disabled { background: var(--text-dim); cursor: not-allowed; }
-
-/* ── NEWS TAB layout ── */
-#tab-news { display: none; height: calc(100vh - 56px); grid-template-columns: 400px 1fr; }
-#tab-news.active { display: grid; }
-
-/* Left panel */
-.left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-surface); }
-.panel-header {
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.panel-header h2 { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'JetBrains Mono', monospace; }
-.news-list { overflow-y: auto; flex: 1; }
-.news-list::-webkit-scrollbar { width: 3px; }
-.news-list::-webkit-scrollbar-thumb { background: var(--border); }
-.news-item {
-  padding: 14px 16px; border-bottom: 1px solid var(--border-dim);
-  cursor: pointer; transition: background 0.12s, border-left-color 0.12s;
-  border-left: 3px solid transparent;
-}
-.news-item:hover { background: var(--bg-raised); }
-.news-item.selected { background: var(--bg-raised); border-left-color: var(--accent); }
-.news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-.source-tag { font-size: 10px; background: rgba(124,58,237,0.1); color: var(--accent-2); padding: 2px 7px; border-radius: 10px; font-weight: 600; }
-.time-tag { font-size: 10px; color: var(--text-dim); }
-.time-tag.fresh { color: var(--green); }
-.time-tag.old { color: #f6ad55; }
-.news-title { font-size: 13px; line-height: 1.5; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-/* Right panel */
-.right-panel {
-  display: flex; flex-direction: column; padding: 24px; overflow-y: auto; gap: 18px;
-  background: var(--bg-base);
-}
-.right-panel::-webkit-scrollbar { width: 3px; }
-.right-panel::-webkit-scrollbar-thumb { background: var(--border); }
-.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); gap: 12px; text-align: center; }
-.placeholder .icon { font-size: 42px; opacity: 0.4; }
-.placeholder p { font-size: 14px; line-height: 1.6; }
-.selected-article {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px;
-}
-.selected-article h3 { font-size: 15px; color: var(--text-primary); margin-bottom: 8px; line-height: 1.5; font-weight: 600; }
-.selected-article p { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
-
-/* Platform selector — grid */
-.section-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
-.platform-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 8px;
-}
-.platform-btn {
-  padding: 9px 12px; border-radius: var(--r-md);
-  border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-muted);
-  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
-  text-align: center; white-space: nowrap;
-}
-.platform-btn:hover { border-color: var(--accent-2); color: var(--accent-2); background: rgba(167,139,250,0.06); }
-.platform-btn.active-fb       { background: rgba(24,119,242,0.12); border-color: var(--fb); color: var(--fb); }
-.platform-btn.active-tweet    { background: rgba(29,161,242,0.08); border-color: var(--tw); color: var(--tw); }
-.platform-btn.active-thread   { background: rgba(147,51,234,0.1);  border-color: #9333ea; color: #c084fc; }
-.platform-btn.active-linkedin { background: rgba(10,102,194,0.12); border-color: var(--li); color: var(--li); }
-.platform-btn.active-instagram{ background: rgba(225,48,108,0.1);  border-color: var(--ig); color: var(--ig); }
-.platform-btn.active-tiktok   { background: rgba(255,0,80,0.08);   border-color: var(--tt); color: var(--tt); }
-.platform-btn.active-youtube      { background: rgba(255,0,0,0.08);   border-color: var(--yt); color: var(--yt); }
-.platform-btn.active-youtubevideo { background: rgba(255,107,107,0.08); border-color: var(--rl); color: var(--rl); }
-.platform-btn.active-reelscript   { background: rgba(255,107,107,0.08); border-color: var(--rl); color: var(--rl); }
-
-/* Tone buttons */
-.tone-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-.tone-btn {
-  padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s;
-}
-.tone-btn:hover { border-color: var(--accent); color: var(--accent-2); }
-.tone-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-.generate-btn {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, var(--accent), #6d28d9);
-  color: #fff; border: none; border-radius: var(--r-md);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: opacity 0.15s, box-shadow 0.15s; align-self: flex-start;
-}
-.generate-btn:hover { opacity: 0.9; box-shadow: 0 0 20px var(--accent-glow); }
-.generate-btn:disabled { background: var(--text-dim); cursor: not-allowed; box-shadow: none; }
-
-/* Post cards */
-.posts-grid { display: flex; flex-direction: column; gap: 12px; }
-.post-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 16px; border-left: 3px solid var(--border);
-}
-.post-card.tweet-card    { border-left-color: var(--tw); }
-.post-card.thread-card   { border-left-color: #9333ea; }
-.post-card.linkedin-card { border-left-color: var(--li); }
-.post-card.instagram-card{ border-left-color: var(--ig); }
-.post-card.tiktok-card   { border-left-color: var(--tt); }
-.post-card.youtube-card  { border-left-color: var(--yt); }
-.post-card.youtubevideo-card { border-left-color: var(--rl); }
-.post-card.reelscript-card   { border-left-color: var(--rl); }
-.post-num { font-size: 10px; font-weight: 700; margin-bottom: 8px; color: var(--accent-2); }
-.tweet-card     .post-num { color: var(--tw); }
-.thread-card    .post-num { color: #c084fc; }
-.linkedin-card  .post-num { color: var(--li); }
-.instagram-card .post-num { color: var(--ig); }
-.tiktok-card    .post-num { color: var(--tt); }
-.youtube-card   .post-num { color: var(--yt); }
-.char-count { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
-.char-count.over { color: #fc8181; }
-.post-text { font-size: 13px; line-height: 1.75; color: var(--text-secondary); white-space: pre-wrap; }
-.thread-connector { width: 2px; height: 14px; background: var(--border); margin: 0 0 0 20px; }
-.card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-
-.copy-btn {
-  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
-}
-.copy-btn:hover { border-color: var(--green); color: var(--green); }
-.copy-btn.copied { border-color: var(--green); color: var(--green); }
-.save-btn {
-  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px; cursor: pointer; transition: all 0.15s;
-}
-.save-btn:hover { border-color: var(--gold); color: var(--gold); }
-.save-btn.saved { border-color: var(--gold); color: var(--gold); }
-.btn-sm {
-  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
-  color: var(--text-muted); border-radius: var(--r-sm); font-size: 11px;
-  cursor: pointer; transition: all 0.15s;
-}
-.btn-sm:hover { border-color: var(--accent-2); color: var(--accent-2); }
-
-/* ── TRENDS TAB layout ── */
-#tab-trends { display: none; height: calc(100vh - 56px); grid-template-columns: 380px 1fr; }
-#tab-trends.active { display: grid; }
-
-.feed { border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg-surface); }
-.feed-top { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.feed-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
-.feed-count { font-size: 11px; color: var(--gold); background: var(--gold-dim); padding: 2px 8px; border-radius: 20px; }
-.trend-list { overflow-y: auto; flex: 1; }
-.trend-list::-webkit-scrollbar { width: 3px; }
-.trend-list::-webkit-scrollbar-thumb { background: var(--border); }
-.trend-item {
-  padding: 12px 16px; border-bottom: 1px solid var(--border-dim);
-  cursor: pointer; transition: background 0.1s; position: relative;
-  border-left: 3px solid transparent;
-}
-.trend-item:hover { background: var(--bg-raised); border-left-color: var(--text-dim); }
-.trend-item.active { background: var(--bg-raised); border-left-color: var(--gold); }
-.item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.score-badge { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-.score-high  { background: rgba(34,197,94,0.15); color: var(--green); }
-.score-viral { background: rgba(239,68,68,0.15); color: var(--red); }
-.score-med   { background: rgba(234,179,8,0.15); color: var(--amber); }
-.score-low   { background: rgba(107,114,128,0.15); color: #6b7280; }
-.item-source { font-size: 10px; color: var(--text-dim); flex: 1; }
-.item-time   { font-size: 10px; color: var(--text-dim); }
-.item-time.fresh { color: var(--green); }
-.item-title  { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 5px; }
-.item-reason { font-size: 11px; color: var(--text-muted); font-style: italic; }
-
-/* Trend detail */
-.detail { display: flex; flex-direction: column; overflow: hidden; background: var(--bg-base); }
-.detail-inner { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
-.detail-inner::-webkit-scrollbar { width: 3px; }
-.detail-inner::-webkit-scrollbar-thumb { background: var(--border); }
-.score-header {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 20px;
-  display: flex; align-items: center; gap: 20px;
-}
-.dial-svg { flex-shrink: 0; }
-.score-meta  { flex: 1; }
-.score-tier  { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.score-reason { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
-.breakdown { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
-.breakdown-title { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
-.bar-label { font-size: 11px; color: var(--text-muted); width: 130px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-.bar-fill  { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: var(--gold); }
-.bar-fill.good { background: var(--green); }
-.bar-fill.ok   { background: var(--amber); }
-.bar-fill.low  { background: var(--red); }
-.bar-val   { font-size: 11px; color: var(--accent-2); width: 36px; text-align: right; }
-.content-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
-.card-label   { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
-.card-title   { font-size: 15px; font-weight: 600; color: var(--text-primary); line-height: 1.5; margin-bottom: 8px; }
-.card-summary { font-size: 12px; color: var(--text-muted); line-height: 1.65; margin-bottom: 12px; }
-.card-footer  { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.meta-pill    { font-size: 10px; background: var(--bg-raised); color: var(--text-muted); padding: 3px 8px; border-radius: 12px; border: 1px solid var(--border); }
-.meta-pill.accent { color: var(--gold); border-color: rgba(245,158,11,0.2); background: var(--gold-dim); }
-.link-btn     { margin-left: auto; font-size: 11px; color: var(--accent-2); text-decoration: none; padding: 4px 10px; border: 1px solid rgba(124,58,237,0.3); border-radius: var(--r-sm); transition: all 0.12s; }
-.link-btn:hover { background: rgba(124,58,237,0.1); }
-.stats-row { display: flex; gap: 12px; }
-.stat-box  { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px; text-align: center; }
-.stat-num  { font-size: 20px; font-weight: 700; color: var(--text-primary); }
-.stat-lbl  { font-size: 10px; color: var(--text-dim); letter-spacing: 0.04em; margin-top: 2px; }
-.opp-box   { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--r-lg); padding: 16px; }
-.opp-title { font-size: 12px; font-weight: 600; color: var(--gold); margin-bottom: 8px; }
-.opp-text  { font-size: 12px; color: var(--text-secondary); line-height: 1.65; }
-.rewrite-btn {
-  padding: 12px 20px; background: linear-gradient(135deg, var(--accent), var(--tw));
-  color: #fff; border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: opacity 0.15s; width: 100%;
-}
-.rewrite-btn:hover { opacity: 0.9; }
-.rewrite-btn:disabled { background: var(--text-dim); cursor: not-allowed; }
-.rewrite-result { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
-.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-.analysis-item { background: var(--bg-raised); border-radius: var(--r-sm); padding: 10px; }
-.analysis-key  { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
-.analysis-val  { font-size: 12px; color: var(--accent-2); line-height: 1.5; }
-.rewrite-post  { background: var(--bg-raised); border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px; }
-.rewrite-post-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
-.rewrite-post-text  { font-size: 13px; color: var(--text-primary); line-height: 1.7; white-space: pre-wrap; }
-
-/* Loader & Error */
-.loader { text-align: center; color: var(--accent-2); padding: 24px; font-size: 13px; }
-.spin {
-  display: inline-block; width: 14px; height: 14px;
-  border: 2px solid var(--border); border-top-color: var(--gold);
-  border-radius: 50%; animation: spin 0.7s linear infinite;
-  vertical-align: middle; margin-right: 8px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.error-msg { color: #fc8181; font-size: 12px; padding: 10px 14px; background: rgba(252,129,129,0.06); border: 1px solid rgba(252,129,129,0.2); border-radius: var(--r-sm); }
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  #tab-news { grid-template-columns: 1fr; grid-template-rows: 250px 1fr; }
-  #tab-news.active { display: flex; flex-direction: column; }
-  .left-panel { height: 250px; border-right: none; border-bottom: 1px solid var(--border); }
-  #tab-trends { grid-template-columns: 1fr; }
-  #tab-trends.active { display: flex; flex-direction: column; }
-  .feed { height: 250px; border-right: none; border-bottom: 1px solid var(--border); }
-  .stats-row-dash { flex-direction: column; }
-  .platform-buttons { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-  .analysis-grid { grid-template-columns: 1fr; }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Al Roshan Restaurant</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <span class="brand-icon">🤖</span>
-    <span class="brand-name">AI News Agent</span>
-  </div>
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('dashboard',this)">🏠 Dashboard</button>
-    <button class="tab-btn" onclick="switchTab('news',this)">📰 News Feed</button>
-    <button class="tab-btn" onclick="switchTab('trends',this)">📡 Viral Intelligence</button>
-  </div>
-</header>
-
-<!-- ══ TAB 1: MASTER DASHBOARD ══ -->
-<div class="tab-panel active" id="tab-dashboard">
-
-  <!-- 🚀 Auto Viral Feed -->
-  <div class="dash-section" style="padding:24px 24px 0">
-    <div class="auto-suggest-header">
-      <div class="dash-section-title" style="margin-bottom:0;border:none;padding:0">🚀 Auto Viral Suggestions — Ready to Post</div>
-      <button class="auto-refresh-btn" id="auto-refresh-btn" onclick="loadAutoSuggest()">🔄 Refresh Suggestions</button>
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">
+        <span class="logo-icon">🍽️</span>
+        <span class="logo-text">Al Roshan</span>
+      </div>
+      <nav class="main-nav">
+        <a href="#menu">Menu</a>
+        <a href="#about">About</a>
+        <a href="#hours">Hours</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <button class="btn-order" onclick="document.getElementById('chat-toggle').click()">Order Now</button>
     </div>
-    <div id="auto-suggest-output" style="margin-top:14px">
-      <div class="loader"><span class="spin"></span>Loading viral suggestions...</div>
-    </div>
-  </div>
+  </header>
 
-  <div style="padding:0 24px">
-
-    <!-- Overview Stats -->
-    <div class="dash-section">
-      <div class="dash-section-title">Today's Overview</div>
-      <div class="stats-row-dash">
-        <div class="stat-box-dash">
-          <div class="stat-num" id="dash-trend-count">—</div>
-          <div class="stat-lbl">📡 TRENDS SCORED</div>
-        </div>
-        <div class="stat-box-dash">
-          <div class="stat-num" id="dash-session-posts">0</div>
-          <div class="stat-lbl">✍️ POSTS GENERATED</div>
-        </div>
-        <div class="stat-box-dash">
-          <div class="stat-num" id="dash-viral-opps">—</div>
-          <div class="stat-lbl">🔥 VIRAL OPPS (65+)</div>
-        </div>
-        <div class="stat-box-dash">
-          <div class="stat-num" id="dash-saved-count">0</div>
-          <div class="stat-lbl">💾 SAVED DRAFTS</div>
-        </div>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <p class="hero-tagline">Authentic Middle Eastern Cuisine</p>
+      <h1 class="hero-title">Welcome to<br />Al Roshan Restaurant</h1>
+      <p class="hero-subtitle">Savor the rich flavors of traditional recipes crafted with the finest ingredients, served with warm hospitality.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="document.getElementById('chat-toggle').click()">Order with RoshanBot</button>
+        <a href="#menu" class="btn-secondary">Explore Menu</a>
       </div>
     </div>
+  </section>
 
-    <!-- Posting Time Reminder -->
-    <div class="posting-banner">
-      <span>🕗 Best time to post: <strong>8:30–9:30pm PKT</strong> (primary) &nbsp;·&nbsp; <strong>1:00–1:30pm PKT</strong> (secondary)</span>
-      <span class="avoid">❌ Avoid: 9am–12pm, midnight posts</span>
-    </div>
-
-    <!-- Weekly Schedule -->
-    <div class="dash-section">
-      <div class="dash-section-title" style="cursor:pointer;user-select:none" onclick="toggleWeeklyPlan()">
-        📅 This Week's Content Plan
-        <span id="weekly-toggle" style="float:right;font-size:10px;color:var(--text-muted)">▼ expand</span>
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="container about-inner">
+      <div class="about-text">
+        <span class="section-label">Our Story</span>
+        <h2>Where Every Meal Tells a Story</h2>
+        <p>Al Roshan Restaurant has been serving the community with authentic Middle Eastern dishes since 2005. Our kitchen is rooted in family traditions — slow-cooked meats, hand-rolled breads, and spice blends passed down through generations.</p>
+        <p>We believe food is more than nourishment — it is a bridge between cultures. Every dish on our menu is a celebration of heritage, prepared fresh daily.</p>
       </div>
-      <div id="weekly-plan-body" style="display:none;">
-        <div class="plan-item"><span class="plan-priority mon">MON</span><span class="plan-topic">🎬 AI LAB experiment — tool demo (screen record)</span></div>
-        <div class="plan-item"><span class="plan-priority tue">TUE</span><span class="plan-topic">🎬 "Ye galti mat karo" — common AI mistake Reel</span></div>
-        <div class="plan-item"><span class="plan-priority wed">WED</span><span class="plan-topic">🎬 Urdu prompt of the day &nbsp;+&nbsp; 📊 Carousel post</span></div>
-        <div class="plan-item"><span class="plan-priority thu">THU</span><span class="plan-topic">🎬 Student result / before-after &nbsp;+&nbsp; 🔴 Live at 9pm</span></div>
-        <div class="plan-item"><span class="plan-priority fri">FRI</span><span class="plan-topic">🎬 "AI se ye kaam 60 sec mein" &nbsp;+&nbsp; 💬 Opinion text post</span></div>
-        <div class="plan-item"><span class="plan-priority sat">SAT</span><span class="plan-topic">🎬 Weekly AI news roundup &nbsp;+&nbsp; 📢 Offer post</span></div>
-        <div class="plan-item"><span class="plan-priority sun">SUN</span><span class="plan-topic">📦 Batch recording day — prep next week's Reels</span></div>
+      <div class="about-stats">
+        <div class="stat"><span class="stat-number">19+</span><span class="stat-label">Years of Service</span></div>
+        <div class="stat"><span class="stat-number">50+</span><span class="stat-label">Menu Items</span></div>
+        <div class="stat"><span class="stat-number">4.8★</span><span class="stat-label">Customer Rating</span></div>
       </div>
     </div>
+  </section>
 
-    <!-- Today's Content Plan from Google Sheets -->
-    <div class="dash-section">
-      <div class="dash-section-title">Today's Content Plan (Google Sheets)</div>
-      <div class="sheet-input-row">
-        <input class="sheet-input" id="sheet-url-input"
-               placeholder="Paste your Google Sheets share URL here (make sheet public first)..." />
-        <button class="sheet-load-btn" onclick="loadMorningPlan()">📋 Load Plan</button>
+  <!-- MENU -->
+  <section class="menu-section" id="menu">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Our Menu</span>
+        <h2>Handcrafted with Passion</h2>
+        <p>From hearty mains to indulgent desserts — explore our full range of authentic dishes.</p>
       </div>
-      <div id="morning-plan-output">
-        <div style="font-size:12px;color:var(--text-muted)">
-          ✅ <strong style="color:var(--accent-2)">How to connect:</strong>
-          Open your Google Sheet → Share → "Anyone with the link" → Copy link → Paste above.
-          Your sheet needs columns: <code style="color:var(--gold)">Date | Topic | Platform | Notes</code>
-        </div>
-      </div>
-    </div>
+      <div class="menu-grid">
 
-    <!-- Quick Generate from Top Trends -->
-    <div class="dash-section">
-      <div class="dash-section-title">Top Viral Opportunities — Quick Open</div>
-      <div id="quick-trends-list">
-        <div style="font-size:12px;color:var(--text-muted)">
-          Load trends from the <strong style="color:var(--accent-2)">📡 Viral Intelligence</strong> tab to see top opportunities here.
-        </div>
-      </div>
-    </div>
-
-    <!-- Content Library -->
-    <div class="dash-section">
-      <div class="dash-section-title">Saved Drafts (Content Library)</div>
-      <div id="library-output">
-        <div style="font-size:12px;color:var(--text-muted)">No saved drafts yet. Generate content in the News Feed tab and click 💾 Save.</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ══ TAB 2: NEWS FEED ══ -->
-<div class="tab-panel" id="tab-news">
-
-  <div class="left-panel">
-    <div class="panel-header">
-      <h2 id="news-count">Loading...</h2>
-      <button class="btn-sm" onclick="loadNews(true)">↻ Refresh</button>
-    </div>
-    <div class="news-list" id="news-list">
-      <div class="loader">Fetching AI news...</div>
-    </div>
-  </div>
-
-  <div class="right-panel" id="right-panel">
-    <div class="placeholder">
-      <div class="icon">📰</div>
-      <p>Select an AI news item from the left<br/>to generate social media content</p>
-    </div>
-  </div>
-
-</div>
-
-<!-- ══ TAB 3: VIRAL INTELLIGENCE ══ -->
-<div class="tab-panel" id="tab-trends">
-
-  <div class="feed">
-    <div class="feed-top">
-      <span class="feed-label">Scored Trends</span>
-      <span style="display:flex;gap:8px;align-items:center">
-        <span class="feed-count" id="trend-count">loading...</span>
-        <button class="btn-sm" onclick="loadTrends(true)">↻</button>
-      </span>
-    </div>
-    <div class="trend-list" id="trend-list">
-      <div class="loader"><span class="spin"></span>Scoring AI trends...</div>
-    </div>
-  </div>
-
-  <div class="detail">
-    <div class="detail-inner" id="trend-detail">
-      <div class="placeholder">
-        <div class="icon">📊</div>
-        <p>Select a trend to see<br/>viral score and analysis</p>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-const API = '';
-
-function toggleWeeklyPlan() {
-  const body = document.getElementById('weekly-plan-body');
-  const toggle = document.getElementById('weekly-toggle');
-  const open = body.style.display === 'none';
-  body.style.display = open ? 'block' : 'none';
-  toggle.textContent = open ? '▲ collapse' : '▼ expand';
-}
-
-/* ══ TAB SWITCHING ══ */
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (btn) btn.classList.add('active');
-  if (name === 'trends' && allTrends.length === 0) loadTrends();
-  if (name === 'dashboard') renderDashboard();
-}
-
-/* ══════════════════════════════════
-   DASHBOARD
-══════════════════════════════════ */
-const LIBRARY_KEY = 'ai_content_library';
-const SHEET_URL_KEY = 'ai_sheet_csv_url';
-const MAX_LIBRARY_SIZE = 50;
-let sessionPostCount = 0;
-
-function updateDashStats() {
-  const e1 = document.getElementById('dash-trend-count');
-  const e2 = document.getElementById('dash-session-posts');
-  const e3 = document.getElementById('dash-viral-opps');
-  const e4 = document.getElementById('dash-saved-count');
-  if (e1) e1.textContent = allTrends.length || '—';
-  if (e2) e2.textContent = sessionPostCount;
-  if (e3) e3.textContent = allTrends.filter(t => t.viral_score >= 65).length || '—';
-  if (e4) e4.textContent = loadLibrary().length;
-}
-
-function renderQuickTrends() {
-  const el = document.getElementById('quick-trends-list');
-  if (!el || !allTrends.length) return;
-  const top5 = allTrends.slice(0, 5);
-  el.innerHTML = top5.map((t, i) => `
-    <div class="quick-trend">
-      <span class="score-badge score-${scClass(t.viral_score)}">${t.viral_score}</span>
-      <span class="quick-trend-title">${esc(trunc(t.title || t.text, 80))}</span>
-      <button class="quick-gen-btn" onclick="jumpToTrend(${i})">Open in Trends →</button>
-    </div>`).join('');
-}
-
-function jumpToTrend(i) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-trends').classList.add('active');
-  document.querySelectorAll('.tab-btn')[2].classList.add('active');
-  if (allTrends.length === 0) loadTrends().then(() => selectTrend(i));
-  else selectTrend(i);
-}
-
-function renderDashboard() {
-  updateDashStats();
-  renderQuickTrends();
-  renderLibrary();
-}
-
-async function loadMorningPlan() {
-  const input = document.getElementById('sheet-url-input');
-  const url = input?.value.trim();
-  if (!url) { alert('Please paste your Google Sheets URL first.'); return; }
-  localStorage.setItem(SHEET_URL_KEY, url);
-  const out = document.getElementById('morning-plan-output');
-  out.innerHTML = '<div class="loader"><span class="spin"></span>Loading from Google Sheets...</div>';
-  try {
-    const res = await fetch(`${API}/morning-plan?csv_url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail}</div>`; return; }
-    if (!data.plan.length) {
-      out.innerHTML = `<div style="font-size:12px;color:var(--text-muted)">No entries found for today (${data.date}). Make sure your sheet has a Date column with today's date.</div>`;
-      return;
-    }
-    out.innerHTML = data.plan.map(item => `
-      <div class="plan-item">
-        <span class="plan-priority">#${item.priority}</span>
-        <span class="plan-topic">${esc(item.topic)}</span>
-        ${item.platform_target ? `<span class="plan-platform">${esc(item.platform_target)}</span>` : ''}
-        ${item.notes ? `<span class="plan-notes">${esc(trunc(item.notes, 80))}</span>` : ''}
-      </div>`).join('');
-  } catch(e) {
-    out.innerHTML = '<div class="error-msg">Could not load the plan. Check the URL and make sure the sheet is public.</div>';
-  }
-}
-
-/* ── Content Library ── */
-function loadLibrary() {
-  try { return JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); }
-  catch { return []; }
-}
-
-function saveToLibrary(platform, content, headline) {
-  const lib = loadLibrary();
-  const item = {
-    id: `${Date.now()}_${platform}`,
-    platform, headline: headline || '', content,
-    savedAt: new Date().toISOString()
-  };
-  lib.unshift(item);
-  if (lib.length > MAX_LIBRARY_SIZE) lib.pop();
-  localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib));
-  sessionPostCount++;
-  renderLibrary();
-  updateDashStats();
-  return item.id;
-}
-
-function deleteFromLibrary(id) {
-  const lib = loadLibrary().filter(i => i.id !== id);
-  localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib));
-  renderLibrary();
-  updateDashStats();
-}
-
-function renderLibrary() {
-  const lib = loadLibrary();
-  const el = document.getElementById('library-output');
-  if (!el) return;
-  if (!lib.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">No saved drafts yet. Generate content and click 💾 Save.</div>';
-    updateDashStats(); return;
-  }
-  el.innerHTML = lib.map(item => `
-    <div class="library-item" id="lib-${item.id}">
-      <div class="library-item-header">
-        <span class="library-platform-badge">${item.platform.toUpperCase()}</span>
-        <span class="library-headline">${esc(trunc(item.headline, 60))}</span>
-        <span class="library-date">${new Date(item.savedAt).toLocaleDateString()}</span>
-      </div>
-      <div class="library-content" id="lc-${item.id}">${esc(trunc(item.content, 150))}</div>
-      <div class="library-actions">
-        <button class="copy-btn" onclick="copyText(this,${JSON.stringify(item.content)})">📋 Copy</button>
-        <button class="copy-btn" onclick="toggleLibExpand('${item.id}',${JSON.stringify(item.content)})">↕ Expand</button>
-        <button class="copy-btn" style="color:#fc8181;border-color:rgba(252,129,129,0.3)" onclick="deleteFromLibrary('${item.id}')">🗑 Delete</button>
-      </div>
-    </div>`).join('');
-  updateDashStats();
-}
-
-function toggleLibExpand(id, fullContent) {
-  const el = document.getElementById(`lc-${id}`);
-  if (!el) return;
-  if (el.dataset.expanded === '1') {
-    el.textContent = trunc(fullContent, 150);
-    el.dataset.expanded = '0';
-  } else {
-    el.textContent = fullContent;
-    el.dataset.expanded = '1';
-  }
-}
-
-/* ══════════════════════════════════
-   NEWS FEED
-══════════════════════════════════ */
-let selectedArticle = null;
-let selectedTone = 'informative';
-let selectedPlatform = 'facebook';
-
-async function loadNews(forceRefresh = false) {
-  const list = document.getElementById('news-list');
-  const countEl = document.getElementById('news-count');
-  list.innerHTML = '<div class="loader">Fetching AI news...</div>';
-  try {
-    const endpoint = forceRefresh ? `${API}/news/refresh` : `${API}/news`;
-    const method = forceRefresh ? 'POST' : 'GET';
-    const res = await fetch(endpoint, { method });
-    const data = await res.json();
-    countEl.textContent = `${data.count} articles (24hr)`;
-    if (!data.articles.length) {
-      list.innerHTML = '<div class="loader" style="color:var(--text-muted)">No fresh AI news found. Try refreshing.</div>';
-      return;
-    }
-    list.innerHTML = data.articles.map((a, i) => `
-      <div class="news-item" onclick="selectArticle(${i})" id="ni-${i}">
-        <div class="news-meta">
-          <span class="source-tag">${a.source}</span>
-          <span class="time-tag ${a.age_hours < 6 ? 'fresh' : a.age_hours > 20 ? 'old' : ''}">
-            ${a.time_ago}${a.age_hours > 20 ? ' ⚠️' : ''}
-          </span>
-        </div>
-        <div class="news-title">${a.title}</div>
-      </div>`).join('');
-    window._articles = data.articles;
-  } catch(e) {
-    list.innerHTML = '<div class="loader" style="color:#fc8181">Could not connect to backend.</div>';
-    countEl.textContent = 'Error';
-  }
-}
-
-function selectArticle(i) {
-  document.querySelectorAll('.news-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById(`ni-${i}`)?.classList.add('selected');
-  selectedArticle = window._articles[i];
-  renderRightPanel();
-}
-
-const PLATFORM_CLASS = {
-  facebook: 'active-fb', tweet: 'active-tweet', thread: 'active-thread',
-  linkedin: 'active-linkedin', instagram: 'active-instagram',
-  tiktok: 'active-tiktok', youtube: 'active-youtube', youtubevideo: 'active-youtubevideo',
-  reelscript: 'active-reelscript'
-};
-
-const PLATFORM_LABEL = {
-  facebook: '✨ Generate Facebook Posts',
-  tweet: '🐦 Generate Viral Tweets',
-  thread: '🧵 Generate X Thread',
-  linkedin: '💼 Generate LinkedIn Posts',
-  instagram: '📸 Generate Instagram Captions',
-  tiktok: '🎵 Generate TikTok Scripts',
-  youtube: '▶️ Generate YouTube Shorts Ideas',
-  youtubevideo: '🎬 Generate YouTube Video Ideas',
-  reelscript: '🎬 Generate Facebook Reel Script'
-};
-
-const ENDPOINTS = {
-  facebook: '/generate', tweet: '/generate/tweet', thread: '/generate/thread',
-  linkedin: '/generate/linkedin', instagram: '/generate/instagram',
-  tiktok: '/generate/tiktok', youtube: '/generate/youtube',
-  youtubevideo: '/generate/youtube-video',
-  reelscript: '/generate/reel-script'
-};
-
-function getPlatformClass(p) {
-  return selectedPlatform === p ? (PLATFORM_CLASS[p] || '') : '';
-}
-
-function renderRightPanel() {
-  const a = selectedArticle;
-  document.getElementById('right-panel').innerHTML = `
-    <div class="selected-article">
-      <h3>${a.title}</h3>
-      ${a.summary ? `<p>${a.summary}</p>` : ''}
-    </div>
-    <div>
-      <div class="section-label">Platform</div>
-      <div class="platform-buttons">
-        <button class="platform-btn ${getPlatformClass('facebook')}"    onclick="setPlatform('facebook')">📘 Facebook</button>
-        <button class="platform-btn ${getPlatformClass('tweet')}"       onclick="setPlatform('tweet')">𝕏 Tweet</button>
-        <button class="platform-btn ${getPlatformClass('thread')}"      onclick="setPlatform('thread')">🧵 X Thread</button>
-        <button class="platform-btn ${getPlatformClass('linkedin')}"    onclick="setPlatform('linkedin')">💼 LinkedIn</button>
-        <button class="platform-btn ${getPlatformClass('instagram')}"   onclick="setPlatform('instagram')">📸 Instagram</button>
-        <button class="platform-btn ${getPlatformClass('tiktok')}"      onclick="setPlatform('tiktok')">🎵 TikTok</button>
-        <button class="platform-btn ${getPlatformClass('youtube')}"     onclick="setPlatform('youtube')">▶️ YT Shorts</button>
-        <button class="platform-btn ${getPlatformClass('youtubevideo')}" onclick="setPlatform('youtubevideo')">🎬 YT Video</button>
-        <button class="platform-btn ${getPlatformClass('reelscript')}"  onclick="setPlatform('reelscript')">🎬 Reel Script</button>
-      </div>
-    </div>
-    <div>
-      <div class="section-label">Tone</div>
-      <div class="tone-buttons">
-        <button class="tone-btn ${selectedTone==='informative'?'active':''}" onclick="setTone('informative')">📊 Informative</button>
-        <button class="tone-btn ${selectedTone==='breaking'?'active':''}"    onclick="setTone('breaking')">🚨 Breaking</button>
-        <button class="tone-btn ${selectedTone==='thought'?'active':''}"     onclick="setTone('thought')">💭 Thought-Provoking</button>
-      </div>
-    </div>
-    <button class="generate-btn" id="gen-btn" onclick="generateContent()">${PLATFORM_LABEL[selectedPlatform]}</button>
-    <div id="posts-output"></div>
-  `;
-}
-
-function setPlatform(p) { selectedPlatform = p; renderRightPanel(); }
-function setTone(tone) {
-  selectedTone = tone;
-  document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
-async function generateContent() {
-  const btn = document.getElementById('gen-btn');
-  const out = document.getElementById('posts-output');
-  btn.disabled = true; btn.textContent = '⏳ Generating...';
-  out.innerHTML = `<div class="loader"><span class="spin"></span>Claude is writing your content...</div>`;
-
-  const endpoint = `${API}${ENDPOINTS[selectedPlatform]}`;
-  const headline = selectedArticle.title;
-  const cardClass = {
-    facebook: '', tweet: 'tweet-card', thread: 'thread-card',
-    linkedin: 'linkedin-card', instagram: 'instagram-card',
-    tiktok: 'tiktok-card', youtube: 'youtube-card',
-    youtubevideo: 'youtubevideo-card', reelscript: 'reelscript-card'
-  }[selectedPlatform] || '';
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ headline, summary: selectedArticle.summary, tone: selectedTone }),
-    });
-    const data = await res.json();
-    if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail || 'Generation failed'}</div>`; return; }
-
-    sessionPostCount++;
-    updateDashStats();
-
-    if (selectedPlatform === 'thread') {
-      out.innerHTML = `<div class="section-label" style="margin-top:4px">🧵 X Thread (${data.posts.length} tweets)</div>` +
-        data.posts.map((t, i) => `
-          <div class="post-card thread-card">
-            <div class="post-num">Tweet ${i+1}/${data.posts.length}</div>
-            <div class="char-count ${t.length>280?'over':''}">${t.length}/280${t.length>280?' ⚠️':''}</div>
-            <div class="post-text">${esc(t)}</div>
-            <div class="card-actions">
-              <button class="copy-btn" onclick="copyText(this,${JSON.stringify(t)})">📋 Copy</button>
-              <button class="save-btn" onclick="saveSingle('thread',${JSON.stringify(t)},${JSON.stringify(headline)},this)">💾 Save</button>
+        <div class="menu-card">
+          <div class="menu-card-emoji">🥩</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Lamb Shawarma Plate</h3>
+              <span class="price">$16.99</span>
             </div>
+            <p>Slow-marinated lamb, wrapped or plated with garlic sauce, pickles, and fresh vegetables.</p>
+            <span class="tag">Bestseller</span>
           </div>
-          ${i < data.posts.length-1 ? '<div class="thread-connector"></div>' : ''}`).join('') +
-        `<button class="copy-btn" style="margin-top:4px" onclick="copyThread(${JSON.stringify(data.posts)})">📋 Copy Full Thread</button>`;
-    } else if (selectedPlatform === 'tweet') {
-      out.innerHTML = `<div class="section-label" style="margin-top:4px">🐦 Viral Tweets (3 Variations)</div>` +
-        data.posts.map((t, i) => `
-          <div class="post-card tweet-card">
-            <div class="post-num">Tweet ${i+1}</div>
-            <div class="char-count ${t.length>280?'over':''}">${t.length}/280 chars${t.length>280?' ⚠️':''}</div>
-            <div class="post-text">${esc(t)}</div>
-            <div class="card-actions">
-              <button class="copy-btn" onclick="copyText(this,${JSON.stringify(t)})">📋 Copy</button>
-              <button class="save-btn" onclick="saveSingle('tweet',${JSON.stringify(t)},${JSON.stringify(headline)},this)">💾 Save</button>
-            </div>
-          </div>`).join('');
-    } else {
-      const platformLabel = { facebook: 'Facebook Posts', linkedin: 'LinkedIn Posts', instagram: 'Instagram Captions', tiktok: 'TikTok Script Ideas', youtube: 'YouTube Shorts Ideas', youtubevideo: 'YouTube Video Ideas', reelscript: 'Facebook Reel Scripts' }[selectedPlatform] || 'Posts';
-      out.innerHTML = `<div class="section-label" style="margin-top:4px">Generated ${platformLabel}</div>` +
-        data.posts.map((p, i) => `
-          <div class="post-card ${cardClass}">
-            <div class="post-num">Variation ${i+1}</div>
-            <div class="post-text">${esc(p)}</div>
-            <div class="card-actions">
-              <button class="copy-btn" onclick="copyText(this,${JSON.stringify(p)})">📋 Copy</button>
-              <button class="save-btn" onclick="saveSingle(${JSON.stringify(selectedPlatform)},${JSON.stringify(p)},${JSON.stringify(headline)},this)">💾 Save</button>
-            </div>
-          </div>`).join('');
-    }
-  } catch(e) {
-    out.innerHTML = '<div class="error-msg">Could not connect to backend.</div>';
-  } finally {
-    btn.disabled = false; btn.textContent = PLATFORM_LABEL[selectedPlatform];
-  }
-}
-
-function saveSingle(platform, content, headline, btn) {
-  saveToLibrary(platform, content, headline);
-  const orig = btn.textContent;
-  btn.textContent = '✅ Saved!'; btn.classList.add('saved');
-  setTimeout(() => { btn.textContent = '💾 Save'; btn.classList.remove('saved'); }, 2000);
-}
-
-/* ══════════════════════════════════
-   VIRAL INTELLIGENCE
-══════════════════════════════════ */
-let allTrends = [];
-let selectedTrend = null;
-
-function scClass(s) { return s>=82?'viral':s>=65?'high':s>=40?'med':'low'; }
-function fmtNum(n) {
-  if (!n) return '0';
-  if (n>=1000000) return (n/1000000).toFixed(1)+'M';
-  if (n>=1000) return (n/1000).toFixed(1)+'K';
-  return String(n);
-}
-
-async function loadTrends(forceRefresh = false) {
-  const list = document.getElementById('trend-list');
-  const countEl = document.getElementById('trend-count');
-  if (list) list.innerHTML = '<div class="loader"><span class="spin"></span>Scoring AI trends...</div>';
-  try {
-    const endpoint = forceRefresh ? `${API}/trends/refresh` : `${API}/trends`;
-    const method = forceRefresh ? 'POST' : 'GET';
-    const res = await fetch(endpoint, { method });
-    const data = await res.json();
-    allTrends = data.trends || [];
-    if (countEl) countEl.textContent = `${allTrends.length} scored`;
-    if (!allTrends.length) { if (list) list.innerHTML = '<div class="loader" style="color:var(--text-muted)">No trends found.</div>'; return; }
-    if (list) list.innerHTML = allTrends.map((t, i) => `
-      <div class="trend-item" id="ti-${i}" onclick="selectTrend(${i})">
-        <div class="item-top">
-          <span class="score-badge score-${scClass(t.viral_score)}">${t.viral_score}</span>
-          <span class="item-source">${t.source}</span>
-          <span class="item-time ${(t.age_hours||0)<4?'fresh':''}">${t.time_ago||timeAgo(t.created_at)}</span>
         </div>
-        <div class="item-title">${trunc(t.title||t.text,90)}</div>
-        <div class="item-reason">${t.viral_reason||''}</div>
-      </div>`).join('');
-    renderQuickTrends();
-    updateDashStats();
-  } catch(e) {
-    if (list) list.innerHTML = '<div class="loader" style="color:#fc8181">Backend connect failed.</div>';
-  }
-}
 
-function selectTrend(i) {
-  document.querySelectorAll('.trend-item').forEach(el => el.classList.remove('active'));
-  document.getElementById(`ti-${i}`)?.classList.add('active');
-  selectedTrend = allTrends[i];
-  renderTrendDetail();
-}
+        <div class="menu-card">
+          <div class="menu-card-emoji">🍗</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Chicken Shawarma</h3>
+              <span class="price">$13.99</span>
+            </div>
+            <p>Tender spiced chicken with tahini, fresh herbs, and toasted pita or rice.</p>
+            <span class="tag">Popular</span>
+          </div>
+        </div>
 
-function makeSvgDial(score, sc) {
-  const colors = { viral: '#ef4444', high: '#22c55e', med: '#eab308', low: '#6b7280' };
-  const color = colors[sc] || '#6b7280';
-  const r = 32, cx = 40, cy = 40;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - score / 100);
-  return `<svg class="dial-svg" width="80" height="80" viewBox="0 0 80 80">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg-raised)" stroke-width="6"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="6"
-      stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
-      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"
-      style="transition:stroke-dashoffset 0.6s ease"/>
-    <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
-      fill="${color}" font-size="16" font-weight="700" font-family="JetBrains Mono,monospace">${score}</text>
-    <text x="${cx}" y="${cy+14}" text-anchor="middle" dominant-baseline="middle"
-      fill="var(--text-muted)" font-size="7" font-family="JetBrains Mono,monospace" letter-spacing="0.5">SCORE</text>
-  </svg>`;
-}
+        <div class="menu-card">
+          <div class="menu-card-emoji">🫕</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Mixed Grill Platter</h3>
+              <span class="price">$24.99</span>
+            </div>
+            <p>A generous assortment of kebabs, kofta, and grilled chicken served with rice and salad.</p>
+            <span class="tag">Signature</span>
+          </div>
+        </div>
 
-function renderTrendDetail() {
-  const t = selectedTrend;
-  const sc = scClass(t.viral_score);
-  const bd = t.score_breakdown || {};
-  const bars = [
-    { label: 'Engagement Velocity', key: 'engagement_velocity', max: 30 },
-    { label: 'Source Authority',    key: 'source_authority',    max: 20 },
-    { label: 'Freshness',           key: 'freshness',           max: 20 },
-    { label: 'Brand Fit',           key: 'brand_fit',           max: 20 },
-    { label: 'Content Quality',     key: 'content_quality',     max: 10 },
-  ];
-  const tierColor = sc==='viral'?'var(--red)':sc==='high'?'var(--green)':sc==='med'?'var(--amber)':'var(--text-muted)';
+        <div class="menu-card">
+          <div class="menu-card-emoji">🥗</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Fattoush Salad</h3>
+              <span class="price">$8.99</span>
+            </div>
+            <p>Crispy pita chips with fresh tomatoes, cucumbers, radishes, and sumac dressing.</p>
+            <span class="tag">Vegetarian</span>
+          </div>
+        </div>
 
-  document.getElementById('trend-detail').innerHTML = `
-    <div class="score-header">
-      ${makeSvgDial(t.viral_score, sc)}
-      <div class="score-meta">
-        <div class="score-tier" style="color:${tierColor}">${t.viral_tier||''}</div>
-        <div class="score-reason">${t.viral_reason||''}</div>
+        <div class="menu-card">
+          <div class="menu-card-emoji">🧆</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Falafel Wrap</h3>
+              <span class="price">$10.99</span>
+            </div>
+            <p>House-made falafel with hummus, pickled vegetables, and chili sauce in fresh flatbread.</p>
+            <span class="tag">Vegan</span>
+          </div>
+        </div>
+
+        <div class="menu-card">
+          <div class="menu-card-emoji">🍮</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Knafeh</h3>
+              <span class="price">$7.99</span>
+            </div>
+            <p>Traditional cheese pastry soaked in sweet syrup, topped with crushed pistachios.</p>
+            <span class="tag">Dessert</span>
+          </div>
+        </div>
+
+        <div class="menu-card">
+          <div class="menu-card-emoji">🫖</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Mint Lemonade</h3>
+              <span class="price">$4.99</span>
+            </div>
+            <p>Freshly squeezed lemon with garden mint, served chilled. A house favourite.</p>
+            <span class="tag">Refreshing</span>
+          </div>
+        </div>
+
+        <div class="menu-card">
+          <div class="menu-card-emoji">🍲</div>
+          <div class="menu-card-body">
+            <div class="menu-card-header">
+              <h3>Lentil Soup</h3>
+              <span class="price">$6.99</span>
+            </div>
+            <p>Silky red lentil soup spiced with cumin and turmeric, finished with lemon and crispy onions.</p>
+            <span class="tag">Starter</span>
+          </div>
+        </div>
+
       </div>
     </div>
-    <div class="breakdown">
-      <div class="breakdown-title">Score Breakdown</div>
-      ${bars.map(r => {
-        const val = bd[r.key] || 0;
-        const pct = Math.round((val / r.max) * 100);
-        const cls = pct >= 75 ? 'good' : pct >= 40 ? 'ok' : 'low';
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span class="bar-label">${r.label}</span>
-          <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
-          <span class="bar-val">${val.toFixed(1)}/${r.max}</span>
-        </div>`;
-      }).join('')}
-    </div>
-    ${t.likes||t.reposts||t.replies ? `
-    <div class="stats-row">
-      <div class="stat-box"><div class="stat-num">${fmtNum(t.likes)}</div><div class="stat-lbl">LIKES</div></div>
-      <div class="stat-box"><div class="stat-num">${fmtNum(t.reposts)}</div><div class="stat-lbl">REPOSTS</div></div>
-      <div class="stat-box"><div class="stat-num">${fmtNum(t.replies)}</div><div class="stat-lbl">REPLIES</div></div>
-      ${t.impressions?`<div class="stat-box"><div class="stat-num">${fmtNum(t.impressions)}</div><div class="stat-lbl">VIEWS</div></div>`:''}
-    </div>` : ''}
-    <div class="content-card">
-      <div class="card-label">Content</div>
-      <div class="card-title">${t.title||trunc(t.text,120)}</div>
-      ${t.summary?`<div class="card-summary">${t.summary}</div>`:''}
-      <div class="card-footer">
-        ${t.author_username?`<span class="meta-pill">@${t.author_username}</span>`:''}
-        <span class="meta-pill accent">${t.source}</span>
-        ${t.time_ago?`<span class="meta-pill">${t.time_ago}</span>`:''}
-        ${t.url?`<a href="${t.url}" target="_blank" class="link-btn">Open ↗</a>`:''}
+  </section>
+
+  <!-- HOURS & LOCATION -->
+  <section class="hours-section" id="hours">
+    <div class="container hours-inner">
+      <div class="hours-block">
+        <span class="section-label">Opening Hours</span>
+        <h2>Visit Us</h2>
+        <table class="hours-table">
+          <tr><td>Monday – Thursday</td><td>11:00 AM – 10:00 PM</td></tr>
+          <tr><td>Friday – Saturday</td><td>11:00 AM – 11:30 PM</td></tr>
+          <tr><td>Sunday</td><td>12:00 PM – 9:00 PM</td></tr>
+        </table>
+      </div>
+      <div class="location-block">
+        <span class="section-label">Location</span>
+        <h2>Find Us</h2>
+        <p>📍 142 Heritage Boulevard, Suite 5<br />Dubai, United Arab Emirates</p>
+        <p>📞 +971 4 555 0199</p>
+        <p>✉️ hello@alroshan.ae</p>
       </div>
     </div>
-    <div class="opp-box">
-      <div class="opp-title">💡 Opportunity for You</div>
-      <div class="opp-text">${buildOpportunity(t)}</div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer" id="contact">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="logo-icon">🍽️</span>
+        <span class="logo-text">Al Roshan</span>
+        <p>Authentic Middle Eastern cuisine, crafted with love since 2005.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#menu">Menu</a>
+        <a href="#about">About</a>
+        <a href="#hours">Hours</a>
+        <a href="#contact">Contact</a>
+      </div>
     </div>
-    <button class="rewrite-btn" id="rewrite-btn" onclick="rewritePost()">
-      ✍️ Rewrite This in My Style (English)
+    <div class="footer-bottom">
+      <p>&copy; 2025 Al Roshan Restaurant. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ROSHANBOT CHAT WIDGET -->
+  <div class="chat-widget" id="chat-widget">
+    <div class="chat-window" id="chat-window" style="display:none;">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar">🤖</div>
+          <div>
+            <strong>RoshanBot</strong>
+            <span class="chat-status">Online · Ready to take your order</span>
+          </div>
+        </div>
+        <button class="chat-close" id="chat-close">✕</button>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="message bot-message">
+          <div class="message-bubble">
+            👋 Marhaba! I'm RoshanBot, your Al Roshan assistant. I can help you place a pickup or delivery order. What would you like today?
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off" />
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+    <button class="chat-toggle" id="chat-toggle">
+      <span class="chat-toggle-icon">💬</span>
+      <span class="chat-toggle-label">Order Now</span>
     </button>
-    <div id="rewrite-output"></div>
-  `;
-}
+  </div>
 
-async function rewritePost() {
-  const btn = document.getElementById('rewrite-btn');
-  const out = document.getElementById('rewrite-output');
-  if (!selectedTrend) return;
-  btn.disabled = true; btn.textContent = '⏳ Claude analyzing...';
-  const text = selectedTrend.text || selectedTrend.title + '. ' + (selectedTrend.summary||'');
-  try {
-    const res = await fetch(`${API}/rewrite`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text, author: selectedTrend.author_username||'', likes: selectedTrend.likes||0, reposts: selectedTrend.reposts||0 }),
-    });
-    const data = await res.json();
-    if (!res.ok) { out.innerHTML = `<div class="error-msg">${data.detail||'Error'}</div>`; return; }
-    const a = data.analysis || {};
-    out.innerHTML = `
-      <div class="rewrite-result">
-        <div class="section-label" style="margin-bottom:10px">🔍 Viral Analysis</div>
-        <div class="analysis-grid">
-          ${a.hook?`<div class="analysis-item"><div class="analysis-key">Hook</div><div class="analysis-val">${esc(a.hook)}</div></div>`:''}
-          ${a.style?`<div class="analysis-item"><div class="analysis-key">Tone</div><div class="analysis-val">${esc(a.style)}</div></div>`:''}
-          ${a.hashtags?`<div class="analysis-item"><div class="analysis-key">Hashtags</div><div class="analysis-val">${esc(a.hashtags)}</div></div>`:''}
-          ${a.cta?`<div class="analysis-item"><div class="analysis-key">CTA</div><div class="analysis-val">${esc(a.cta)}</div></div>`:''}
-        </div>
-        ${data.x_tweet?`
-        <div class="rewrite-post">
-          <div class="rewrite-post-label">🐦 X Tweet</div>
-          <div class="rewrite-post-text">${esc(data.x_tweet)}</div>
-          <div style="font-size:10px;color:${data.x_tweet.length>280?'#fc8181':'var(--text-muted)'};margin-top:6px">${data.x_tweet.length}/280</div>
-          <button class="copy-btn" style="margin-top:8px" onclick="copyText(this,${JSON.stringify(data.x_tweet)})">📋 Copy Tweet</button>
-        </div>`:''}
-        ${data.facebook?`
-        <div class="rewrite-post">
-          <div class="rewrite-post-label">📘 Facebook Post</div>
-          <div class="rewrite-post-text">${esc(data.facebook)}</div>
-          <button class="copy-btn" style="margin-top:8px" onclick="copyText(this,${JSON.stringify(data.facebook)})">📋 Copy Post</button>
-        </div>`:''}
-      </div>`;
-  } catch(e) {
-    out.innerHTML = '<div class="error-msg">Backend connect failed.</div>';
-  } finally {
-    btn.disabled = false; btn.textContent = '✍️ Rewrite Again';
-  }
-}
-
-function buildOpportunity(t) {
-  const s = t.viral_score;
-  if (s>=82) return `This trend is very powerful. Post immediately — it's trending ${t.time_ago||'now'}. Add your unique angle and perspective. Perfect candidate for a viral thread.`;
-  if (s>=65) return `Strong opportunity. This content is relevant to your brand. Create an educational post or thread — verify the facts first, then add your insight.`;
-  if (s>=40) return `Medium relevance. You can post but don't invest too much effort. One simple informative tweet is enough.`;
-  return `Low priority. This trend isn't very suitable for your personal brand. Skip it or simply share without much additional effort.`;
-}
-
-/* ══ UTILS ══ */
-function copyText(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = '✅ Copied!'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
-  });
-}
-function copyThread(tweets) {
-  copyText(event.target, tweets.join('\n\n---\n\n'));
-}
-function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function trunc(s, n) { if (!s) return ''; return s.length>n ? s.slice(0,n)+'…' : s; }
-function timeAgo(iso) {
-  if (!iso) return '';
-  const d = (Date.now()-new Date(iso))/1000;
-  if (d<3600) return `${Math.floor(d/60)} min ago`;
-  if (d<86400) return `${Math.floor(d/3600)} hr ago`;
-  return `${Math.floor(d/86400)} day ago`;
-}
-
-/* ══════════════════════════════════
-   AUTO VIRAL SUGGEST
-══════════════════════════════════ */
-let autoSuggestions = [];
-
-async function loadAutoSuggest() {
-  const out = document.getElementById('auto-suggest-output');
-  const btn = document.getElementById('auto-refresh-btn');
-  if (!out) return;
-  out.innerHTML = '<div class="loader"><span class="spin"></span>Fetching top viral trends + generating tweets...</div>';
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
-  try {
-    const res = await fetch(`${API}/auto-suggest`, { method: 'POST' });
-    const data = await res.json();
-    autoSuggestions = data.suggestions || [];
-    if (!autoSuggestions.length) {
-      out.innerHTML = '<div style="font-size:12px;color:var(--text-muted)">No viral trends found. Try again later.</div>';
-      return;
-    }
-    renderAutoSuggest();
-  } catch(e) {
-    out.innerHTML = '<div class="error-msg">Could not load suggestions. Make sure the backend is running.</div>';
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh Suggestions'; }
-  }
-}
-
-function renderAutoSuggest() {
-  const out = document.getElementById('auto-suggest-output');
-  if (!out) return;
-  out.innerHTML = autoSuggestions.map((s, i) => {
-    const sc = scClass(s.viral_score);
-    return `<div class="viral-card">
-      <div class="viral-card-header tier-${sc}">
-        <span class="score-badge score-${sc}">${s.viral_score}</span>
-        <span class="viral-card-title">${esc(s.title || trunc(s.text, 100))}</span>
-        <span class="meta-pill" style="flex-shrink:0">${esc(s.source)}</span>
-        ${s.time_ago ? `<span class="meta-pill" style="flex-shrink:0">${esc(s.time_ago)}</span>` : ''}
-      </div>
-      <div class="viral-card-body">
-        ${s.tweet ? `
-        <div class="viral-tweet-box">
-          <div class="viral-tweet-label">🐦 Best Tweet — Ready to Post</div>
-          <div class="viral-tweet-text">${esc(s.tweet)}</div>
-          <div class="viral-tweet-meta">${s.tweet.length}/280 chars ${s.tweet.length > 280 ? '⚠️' : '✅'}</div>
-          <div class="card-actions" style="margin-top:8px">
-            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(s.tweet)})">📋 Copy Tweet</button>
-            <button class="save-btn" onclick="saveSingle('tweet',${JSON.stringify(s.tweet)},${JSON.stringify(s.title||s.text)},this)">💾 Save</button>
-          </div>
-        </div>` : '<div style="font-size:12px;color:var(--text-muted)">Tweet generation failed for this trend.</div>'}
-
-        <div class="viral-gen-row">
-          <span style="font-size:10px;color:var(--text-dim);align-self:center;font-family:'JetBrains Mono',monospace">ALSO GENERATE:</span>
-          <button class="vg-btn fb"  onclick="expandGen(${i},'facebook')">📘 Facebook</button>
-          <button class="vg-btn li"  onclick="expandGen(${i},'linkedin')">💼 LinkedIn</button>
-          <button class="vg-btn ig"  onclick="expandGen(${i},'instagram')">📸 Instagram</button>
-          <button class="vg-btn tt"  onclick="expandGen(${i},'tiktok')">🎵 TikTok</button>
-          <button class="vg-btn yt"  onclick="expandGen(${i},'youtube')">▶️ YT Shorts</button>
-          <button class="vg-btn ytv" onclick="expandGen(${i},'youtubevideo')">🎬 YT Video</button>
-          <button class="vg-btn rl"  onclick="expandGen(${i},'reelscript')">🎬 Reel</button>
-        </div>
-        <div id="expand-gen-${i}"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function expandGen(idx, platform) {
-  const s = autoSuggestions[idx];
-  const container = document.getElementById(`expand-gen-${idx}`);
-  if (!container) return;
-  container.innerHTML = `<div class="loader"><span class="spin"></span>Generating ${platform} content...</div>`;
-
-  const endpoint = `${API}${ENDPOINTS[platform]}`;
-  const headline = s.title || s.text;
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ headline, summary: s.summary || '', tone: 'breaking' }),
-    });
-    const data = await res.json();
-    if (!res.ok) { container.innerHTML = `<div class="error-msg">${data.detail || 'Error'}</div>`; return; }
-
-    const labelMap = {
-      facebook: '📘 Facebook', linkedin: '💼 LinkedIn', instagram: '📸 Instagram',
-      tiktok: '🎵 TikTok Script', youtube: '▶️ YouTube Shorts',
-      youtubevideo: '🎬 YouTube Video', reelscript: '🎬 Reel Script'
-    };
-    const label = labelMap[platform] || platform;
-    sessionPostCount++; updateDashStats();
-    container.innerHTML = `<div class="expand-gen">
-      <div class="expand-gen-label">${label} Content</div>
-      ${data.posts.map((p, i) => `
-        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-bottom:4px">Variation ${i+1}</div>
-          <div class="post-text">${esc(p)}</div>
-          <div class="card-actions" style="margin-top:8px">
-            <button class="copy-btn" onclick="copyText(this,${JSON.stringify(p)})">📋 Copy</button>
-            <button class="save-btn" onclick="saveSingle(${JSON.stringify(platform)},${JSON.stringify(p)},${JSON.stringify(headline)},this)">💾 Save</button>
-          </div>
-        </div>`).join('')}
-    </div>`;
-  } catch(e) {
-    container.innerHTML = '<div class="error-msg">Generation failed.</div>';
-  }
-}
-
-/* ══ INIT ══ */
-const savedSheetUrl = localStorage.getItem(SHEET_URL_KEY);
-if (savedSheetUrl) {
-  const inp = document.getElementById('sheet-url-input');
-  if (inp) inp.value = savedSheetUrl;
-}
-renderDashboard();
-loadNews();
-loadAutoSuggest();
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
