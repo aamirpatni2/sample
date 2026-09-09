@@ -30,5 +30,22 @@ Then open `frontend/index.html` in your browser.
 - Covers all AI content: news, tutorials, guides, announcements
 - Generates 3 Facebook post variations per article
 - Three tones: Informative, Breaking News, Thought-Provoking
-- Hinglish style (English + Urdu mix) for Pakistani audience
 - One-click copy for each post
+
+## Content language
+
+Language is a single setting, not a per-platform instruction:
+
+```
+CONTENT_LANGUAGE=english    # default: clear English, Roman-Urdu CTA lines kept
+CONTENT_LANGUAGE=hinglish   # Roman Urdu mixed with English throughout
+```
+
+All nine platforms share one brand definition in `backend/agent.py` — audience,
+voice, banned phrases, and the verify-AI caveat are defined once.
+
+## Tests
+
+```bash
+python -m unittest discover -s tests
+```
