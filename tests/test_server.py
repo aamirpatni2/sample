@@ -46,9 +46,10 @@ class TestErrorGuidance(unittest.TestCase):
 
         headline, guidance = server.explain(Unauthorized("nope"))
         self.assertIn("rejected", headline.lower())
-        self.assertIn("terminal window", guidance.lower())
-        self.assertIn("revoked", guidance.lower())
         self.assertIn("console.anthropic.com", guidance)
+        # The launcher reads .env, so telling the user to export a variable in
+        # the launching shell is advice that fixes nothing.
+        self.assertNotIn("$env:", guidance)
 
     def test_connection_failure_is_recognised(self) -> None:
         class APIConnectionError(Exception):
