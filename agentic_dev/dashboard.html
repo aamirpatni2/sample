@@ -118,6 +118,11 @@ button.deny:hover:not(:disabled){background:rgba(239,68,68,.12)}
 }
 .fatal{border-color:var(--red); background:rgba(239,68,68,.07)}
 .fatal .who{color:var(--red)}
+.guidance{
+  margin-top:11px; padding-top:11px; border-top:1px solid rgba(239,68,68,.25);
+  font-family:var(--mono); font-size:12.5px; color:var(--text-secondary);
+  white-space:pre-wrap; line-height:1.65;
+}
 
 /* ── composer ───────────────────────────────────────── */
 footer{
@@ -262,7 +267,8 @@ function connect(){
 
     else if (m.type === 'error' || m.type === 'fatal'){
       busy = false; setState('error', 'off'); send.disabled = false;
-      node('msg fatal', `<div class="who">Error</div><div class="body">${esc(m.detail)}</div>`);
+      node('msg fatal', `<div class="who">Error</div><div class="body">${esc(m.detail)}</div>` +
+        (m.guidance ? `<div class="guidance">${esc(m.guidance)}</div>` : ''));
     }
   };
 }

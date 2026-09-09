@@ -37,6 +37,59 @@ class TestPages(unittest.TestCase):
             self.assertNotIn(leaked, joined)
 
 
+class TestErrorGuidance(unittest.TestCase):
+    """A raw SDK exception is not something a person can act on."""
+
+    def test_401_explains_the_likely_cause(self) -> None:
+        class Unauthorized(Exception):
+            status_code = 401
+
+        headline, guidance = server.explain(Unauthorized("nope"))
+        self.assertIn("rejected", headline.lower())
+        self.assertIn("terminal window", guidance.lower())
+        self.assertIn("revoked", guidance.lower())
+        self.assertIn("console.anthropic.com", guidance)
+
+    def test_connection_failure_is_recognised(self) -> None:
+        class APIConnectionError(Exception):
+            pass
+
+        headline, _ = server.explain(APIConnectionError("down"))
+        self.assertIn("could not reach", headline.lower())
+
+    def test_unknown_error_still_reports_something(self) -> None:
+        headline, guidance = server.explain(ValueError("odd"))
+        self.assertEqual(headline, "ValueError")
+        self.assertEqual(guidance, "odd")
+
+    def test_guidance_never_contains_a_key(self) -> None:
+        for headline, guidance in server.ERROR_GUIDANCE.values():
+            self.assertNotIn("sk-ant-api", headline + guidance)
+
+
+class TestKeyShape(unittest.TestCase):
+    """Catch a malformed key at startup rather than one API call later."""
+
+    def test_missing_key(self) -> None:
+        self.assertIn("not set", server.check_key_shape(""))
+
+    def test_quoted_key(self) -> None:
+        self.assertIn("quotes", server.check_key_shape('"sk-ant-api03-' + "x" * 50 + '"'))
+
+    def test_wrong_prefix(self) -> None:
+        self.assertIn("sk-ant-", server.check_key_shape("sk-proj-" + "x" * 60))
+
+    def test_truncated_key(self) -> None:
+        self.assertIn("truncated", server.check_key_shape("sk-ant-abc"))
+
+    def test_well_formed_key_passes(self) -> None:
+        self.assertIsNone(server.check_key_shape("sk-ant-api03-" + "x" * 60))
+
+    def test_shape_check_cannot_prove_validity(self) -> None:
+        """A well-formed but revoked key still passes here -- by design."""
+        self.assertIsNone(server.check_key_shape("sk-ant-api03-" + "revoked" * 10))
+
+
 class TestBridge(unittest.TestCase):
     """The thread boundary is the only tricky part of this server."""
 

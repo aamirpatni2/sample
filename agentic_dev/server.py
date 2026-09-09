@@ -27,6 +27,36 @@ from .tools import ToolContext
 
 DASHBOARD = Path(__file__).parent / "dashboard.html"
 
+# A raw SDK exception is not an error message a person can act on. Each entry
+# maps a failure to what actually went wrong and what to do next.
+ERROR_GUIDANCE: dict[int, tuple[str, str]] = {
+    401: (
+        "Your API key was rejected.",
+        "The key reached Anthropic but was refused. Usually it is an old key "
+        "that has been revoked, or one set in a different terminal window than "
+        "the one that started this server.\n\n"
+        "Fix it in the SAME window you launch from:\n"
+        '  $env:ANTHROPIC_API_KEY="sk-ant-..."\n'
+        "  python -m agentic_dev.server\n\n"
+        "Get a fresh key at console.anthropic.com/settings/keys",
+    ),
+    403: ("Your API key is not permitted to do this.",
+          "The key is valid but lacks access to this model or endpoint."),
+    429: ("Rate limited.", "Too many requests. Wait a moment and try again."),
+    529: ("Anthropic is overloaded.", "A temporary capacity problem. Try again shortly."),
+}
+
+
+def explain(exc: Exception) -> tuple[str, str]:
+    """Turn an exception into (headline, what to do about it)."""
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int) and status in ERROR_GUIDANCE:
+        return ERROR_GUIDANCE[status]
+    if type(exc).__name__ in {"APIConnectionError", "APITimeoutError"}:
+        return ("Could not reach Anthropic.",
+                "Check your internet connection, then try again.")
+    return (f"{type(exc).__name__}", str(exc))
+
 # How long a pending approval waits for a human before defaulting to refusal.
 APPROVAL_TIMEOUT_SECONDS = 600
 
@@ -93,6 +123,24 @@ class Bridge:
     def answer_approval(self, allow: bool) -> None:
         """Deliver the human's answer. Called from the event loop."""
         self._approvals.put(allow)
+
+
+def check_key_shape(key: str) -> str | None:
+    """Return a complaint if the key is obviously wrong, else None.
+
+    This catches a missing, truncated, or pasted-with-quotes key at startup
+    instead of one API call later. It cannot tell whether a well-formed key is
+    still valid -- only Anthropic can.
+    """
+    if not key:
+        return "ANTHROPIC_API_KEY is not set."
+    if key.startswith(("'", '"')) or key.endswith(("'", '"')):
+        return "ANTHROPIC_API_KEY has quotes around it. Set it without quotes."
+    if not key.startswith("sk-ant-"):
+        return "ANTHROPIC_API_KEY does not start with 'sk-ant-'."
+    if len(key) < 50:
+        return f"ANTHROPIC_API_KEY looks truncated ({len(key)} characters)."
+    return None
 
 
 def build_agent(bridge: Bridge) -> AgenticDeveloper:
@@ -168,7 +216,8 @@ async def _finish(websocket: WebSocket, future: Any) -> None:
     try:
         result = future.result()
     except Exception as exc:
-        payload = {"type": "error", "detail": f"{type(exc).__name__}: {exc}"}
+        headline, guidance = explain(exc)
+        payload = {"type": "error", "detail": headline, "guidance": guidance}
     else:
         payload = {
             "type": "done",
@@ -195,6 +244,15 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings.from_env(workspace=args.workspace)
     if args.model:
         settings.model = args.model
+
+    import os
+
+    complaint = check_key_shape(os.getenv("ANTHROPIC_API_KEY", "").strip())
+    if complaint:
+        print(f"  WARNING: {complaint}")
+        print("  Set it in this same window, then restart:")
+        print('    $env:ANTHROPIC_API_KEY="sk-ant-..."     (PowerShell)')
+        print('    export ANTHROPIC_API_KEY=sk-ant-...      (Mac/Linux)\n')
 
     import uvicorn
 
