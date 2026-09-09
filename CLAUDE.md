@@ -64,7 +64,12 @@ test guarding it:
    Models cannot count characters. Platforms declare `char_limit`; `fit_to_limit`
    guarantees it by dropping trailing hashtags, then whole words. Prompts ask for
    a *word* budget, which is obeyable.
-3. **`split_variations` assumes the model will break its contract** — it strips
+3. **The fixed brand lines are repaired in code** (`repair_fixed_lines`). A live
+   run published "ke lije" for "ke liye" — the model paraphrases lines it is told
+   to copy verbatim. Near-identical lines are snapped back to canonical, which
+   also keeps `roman_urdu_score` honest, since it strips those lines by exact
+   match before scoring.
+4. **`split_variations` assumes the model will break its contract** — it strips
    chatty preambles and numbering the prompt told it to omit.
 
 `roman_urdu_score()` verifies output language; `usage_summary()` reports tokens

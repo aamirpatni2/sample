@@ -12,6 +12,7 @@ Language is a single explicit setting rather than an instruction repeated
 
 from __future__ import annotations
 
+import difflib
 import os
 import re
 import time
@@ -451,7 +452,8 @@ def generate(platform_name: str, headline: str, summary: str, tone: str) -> list
     system = _system_prompt(platform)
     user = _build_user_prompt(platform, headline, summary, tone)
     raw = _call(system, user, platform.max_tokens)
-    parts = split_variations(raw, platform.delimiter, platform.count)
+    parts = [repair_fixed_lines(part)
+             for part in split_variations(raw, platform.delimiter, platform.count)]
     if platform.char_limit is not None:
         parts = _enforce_limit(parts, platform.char_limit)
     return parts
@@ -511,6 +513,9 @@ def generate_single_tweet(headline: str, summary: str) -> str:
 
 # High-frequency Roman Urdu function words. Content words (AI, agent, prompt)
 # are shared with English and carry no signal, so they are not listed.
+# Lines that are meant to be Roman Urdu in english mode.
+_FIXED_LINES = (CTA_PROMPT_LINE, CTA_FOLLOW_LINE, CAVEAT_LINE)
+
 _ROMAN_URDU_MARKERS = frozenset({
     "aap", "aapka", "aapke", "aapko", "hai", "hain", "ho", "hoga", "kya",
     "nahi", "nahin", "karo", "karein", "karna", "kar", "kiya", "mein", "may",
@@ -520,8 +525,38 @@ _ROMAN_URDU_MARKERS = frozenset({
     "chahiye", "hota", "hoti", "padta", "diye", "wala", "wali",
 })
 
-# Lines that are meant to be Roman Urdu in english mode.
-_FIXED_LINES = (CTA_PROMPT_LINE, CTA_FOLLOW_LINE, CAVEAT_LINE)
+# A line this close to a brand line is meant to be that brand line.
+# The observed failure was a single character ("liye" -> "lije", 0.982).
+_FIXED_LINE_SIMILARITY = 0.85
+
+
+def repair_fixed_lines(text: str) -> str:
+    """Restore the exact wording of the fixed brand lines.
+
+    Models paraphrase and misspell lines they are told to copy verbatim -- a
+    live run returned "ke lije" for "ke liye". These lines carry the brand and
+    the call to action, so they are corrected in code rather than requested
+    more firmly in the prompt.
+
+    Only near-identical lines are replaced, so a line the model wrote for some
+    other purpose is left alone.
+    """
+    repaired: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            repaired.append(line)
+            continue
+
+        best, score = None, 0.0
+        for canonical in _FIXED_LINES:
+            ratio = difflib.SequenceMatcher(None, canonical, stripped).ratio()
+            if ratio > score:
+                best, score = canonical, ratio
+
+        repaired.append(best if best is not None and score >= _FIXED_LINE_SIMILARITY
+                        and stripped != best else line)
+    return "\n".join(repaired)
 
 
 def roman_urdu_score(text: str) -> int:

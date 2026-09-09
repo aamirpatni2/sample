@@ -130,6 +130,64 @@ class TestCharLimitEnforcement(unittest.TestCase):
                 self.assertIn("40 words", agent.PLATFORMS[name].rules)
 
 
+class TestFixedLineRepair(unittest.TestCase):
+    """The brand lines are corrected in code, not requested in the prompt.
+
+    A live run returned "Rozana practical AI ke lije ..." for "... ke liye ...",
+    which published a misspelled brand line and also broke language detection,
+    since the exact-match strip no longer removed it.
+    """
+
+    def test_repairs_the_observed_typo(self) -> None:
+        typo = "Rozana practical AI ke lije Aamir Patni ko follow karein"
+        self.assertEqual(agent.repair_fixed_lines(typo), agent.CTA_FOLLOW_LINE)
+
+    def test_repairs_the_prompt_cta(self) -> None:
+        typo = 'Comment "PROMPT" — main poora prompt bhej dunga'
+        self.assertEqual(agent.repair_fixed_lines(typo), agent.CTA_PROMPT_LINE)
+
+    def test_correct_lines_are_untouched(self) -> None:
+        for line in (agent.CTA_PROMPT_LINE, agent.CTA_FOLLOW_LINE, agent.CAVEAT_LINE):
+            with self.subTest(line=line[:30]):
+                self.assertEqual(agent.repair_fixed_lines(line), line)
+
+    def test_unrelated_lines_are_left_alone(self) -> None:
+        """Over-eager matching would silently rewrite real content."""
+        body = (
+            "You can now build AI agents without paying upfront.\n"
+            "\n"
+            "✅ Build a customer service bot that answers FAQ\n"
+            "Comment below with your use case\n"
+            "#AILabPakistan #AamirPatni"
+        )
+        self.assertEqual(agent.repair_fixed_lines(body), body)
+
+    def test_blank_lines_and_spacing_survive(self) -> None:
+        text = "Hook line.\n\n✅ One\n\nEnd."
+        self.assertEqual(agent.repair_fixed_lines(text), text)
+
+    def test_repair_restores_language_detection(self) -> None:
+        """The repair is what makes roman_urdu_score trustworthy."""
+        post = (
+            "You can now build AI agents without paying upfront.\n"
+            "Freelancers were locked out because subscriptions cost money.\n"
+            f"{agent.CAVEAT_LINE}\n"
+            'Comment "PROMPT" — main poora prompt bhej dunga\n'
+            "Rozana practical AI ke lije Aamir Patni ko follow karein"
+        )
+        self.assertGreater(agent.roman_urdu_score(post), 0)
+        self.assertEqual(agent.roman_urdu_score(agent.repair_fixed_lines(post)), 0)
+
+    def test_a_genuinely_hinglish_body_still_scores_high(self) -> None:
+        """Repair must not mask a real language failure."""
+        post = (
+            "Aapka pehla AI agent bilkul free bana sakte ho ab.\n"
+            "OpenAI ne free tier nikala hai, matlab ab paisa nahi dena padta.\n"
+            f"{agent.CTA_FOLLOW_LINE}"
+        )
+        self.assertGreaterEqual(agent.roman_urdu_score(agent.repair_fixed_lines(post)), 5)
+
+
 class TestLanguageControl(unittest.TestCase):
     """The setting must actually control the output, and be verifiable."""
 
