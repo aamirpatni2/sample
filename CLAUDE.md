@@ -107,6 +107,16 @@ separated from the `tool_use` it answers — the API rejects the request otherwi
 at startup so it can be edited and reviewed as a document.
 `prompts/OPTIMIZATION-NOTES.md` records what changed from v1 and why.
 
+## Measured, do not redo
+
+**Prompt caching does not apply to the content agent.** Haiku 4.5 needs a
+4096-token minimum cacheable prefix; the largest system prompt here is ~714
+tokens, so a cache marker would silently no-op (`cache_creation_input_tokens: 0`,
+no error). Output tokens are also ~70% of spend, so caching input would be a
+small lever even if it worked. A measured run costs $0.0074 for three platform
+generations. Do not add caching without re-measuring against the model actually
+in use.
+
 ## Working notes
 
 Two bugs here shipped past a fully green suite: output in the wrong language, and
