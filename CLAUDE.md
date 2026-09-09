@@ -12,7 +12,7 @@ Two independent systems that share only a test suite and a git history:
 ## Commands
 
 ```bash
-# Offline suite — no API key, no network. 133 tests.
+# Offline suite — no API key, no network.
 python3 -m unittest discover -s tests
 
 # One module, one class, one test
@@ -124,10 +124,15 @@ in use.
 
 ## Working notes
 
-Two bugs here shipped past a fully green suite: output in the wrong language, and
-a tweet over the character limit. Both passed because the tests checked structure
-(counts, hashtags, presence) and never the property that mattered. When adding a
-check, ask what would still be broken if it passed.
+Three bugs here shipped past a fully green suite: output in the wrong language, a
+tweet over the character limit, and a misspelled brand line ("ke lije"). All three
+passed because the tests checked structure (counts, hashtags, presence) and never
+the property that mattered. When adding a check, ask what would still be broken if
+it passed.
+
+All three had the same fix, and it is the rule to reach for first here: a
+requirement the model must meet *exactly* belongs in code, not in a more forceful
+prompt. Prompts set direction; code sets guarantees.
 
 The author is based in Pakistan and the content targets an Urdu-speaking
 audience; Roman Urdu in CTA lines and prompt text is intentional, not a typo.
