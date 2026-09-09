@@ -247,6 +247,9 @@ def main(argv: list[str] | None = None) -> int:
 
     import os
 
+    from .config import load_dotenv_key
+
+    load_dotenv_key()
     complaint = check_key_shape(os.getenv("ANTHROPIC_API_KEY", "").strip())
     if complaint:
         print(f"  WARNING: {complaint}")

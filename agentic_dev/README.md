@@ -17,14 +17,18 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 ### Dashboard (recommended)
 
+On Windows, double-click **`agent-dashboard.bat`**. It checks Python, installs
+what is missing, asks for an API key the first time and saves it to `.env`
+(gitignored), then opens the browser. No terminal setup.
+
+Elsewhere:
+
 ```bash
 python -m agentic_dev.server --workspace ./my-project
 ```
 
-Opens a browser at `http://127.0.0.1:8100`. Approval requests appear as
-Allow/Deny buttons rather than a terminal prompt; tool calls stream in as the
-agent works. On Windows, `agent-dashboard.bat` does the same and checks the API
-key is set first.
+Opens `http://127.0.0.1:8100`. Approval requests appear as Allow/Deny buttons
+rather than a terminal prompt; tool calls stream in as the agent works.
 
 ### Terminal
 

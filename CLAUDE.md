@@ -89,6 +89,11 @@ only place that boundary matters — it pushes events out and blocks the worker 
 approval answers coming back. A closed socket or a silent human both resolve to
 refusal, so a thread never parks forever and nothing runs unapproved.
 
+`config.load_dotenv_key()` fills `ANTHROPIC_API_KEY` from `.env` when the
+environment does not already carry it, so the dashboard works when launched by
+double-click with no shell to export in. An existing environment variable always
+wins.
+
 **The Anthropic client is injected into `AgenticDeveloper`**, which is the single
 decision that makes the whole package testable with no API key. Keep it that way;
 tests drive it with a scripted fake client.

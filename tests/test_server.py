@@ -158,3 +158,52 @@ class TestBridge(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDotenvFallback(unittest.TestCase):
+    """The dashboard is launched by double-click, with no shell to export in."""
+
+    def setUp(self) -> None:
+        import os
+        import tempfile
+
+        from agentic_dev import config
+
+        self.config = config
+        self.os = os
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self._saved = os.environ.get("ANTHROPIC_API_KEY")
+        os.environ.pop("ANTHROPIC_API_KEY", None)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+        if self._saved is None:
+            self.os.environ.pop("ANTHROPIC_API_KEY", None)
+        else:
+            self.os.environ["ANTHROPIC_API_KEY"] = self._saved
+
+    def test_reads_key_from_dotenv(self) -> None:
+        (self.root / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-api03-fromfile\n")
+        self.config.load_dotenv_key(self.root)
+        self.assertEqual(self.os.environ["ANTHROPIC_API_KEY"], "sk-ant-api03-fromfile")
+
+    def test_strips_quotes_someone_pasted(self) -> None:
+        (self.root / ".env").write_text('ANTHROPIC_API_KEY="sk-ant-api03-quoted"\n')
+        self.config.load_dotenv_key(self.root)
+        self.assertEqual(self.os.environ["ANTHROPIC_API_KEY"], "sk-ant-api03-quoted")
+
+    def test_environment_wins_over_file(self) -> None:
+        self.os.environ["ANTHROPIC_API_KEY"] = "sk-ant-api03-from-shell"
+        (self.root / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-api03-fromfile\n")
+        self.config.load_dotenv_key(self.root)
+        self.assertEqual(self.os.environ["ANTHROPIC_API_KEY"], "sk-ant-api03-from-shell")
+
+    def test_missing_file_is_not_an_error(self) -> None:
+        self.config.load_dotenv_key(self.root)
+        self.assertNotIn("ANTHROPIC_API_KEY", self.os.environ)
+
+    def test_ignores_other_variables(self) -> None:
+        (self.root / ".env").write_text("X_BEARER_TOKEN=abc\nCONTENT_LANGUAGE=english\n")
+        self.config.load_dotenv_key(self.root)
+        self.assertNotIn("ANTHROPIC_API_KEY", self.os.environ)

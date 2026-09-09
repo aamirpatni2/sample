@@ -52,8 +52,28 @@ def load_system_prompt(path: Path = DEFAULT_PROMPT_PATH) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def load_dotenv_key(repo_root: Path = REPO_ROOT) -> None:
+    """Populate ANTHROPIC_API_KEY from a .env file when it is not already set.
+
+    Lets the dashboard be launched by double-clicking, with no terminal
+    session to export a variable in. An existing environment variable always
+    wins, so a shell can still override the file.
+    """
+    if os.getenv("ANTHROPIC_API_KEY", "").strip():
+        return
+    env_file = repo_root / ".env"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines():
+        name, _, value = line.partition("=")
+        if name.strip() == "ANTHROPIC_API_KEY" and value.strip():
+            os.environ["ANTHROPIC_API_KEY"] = value.strip().strip("\"'")
+            return
+
+
 def require_api_key() -> str:
     """Return the Anthropic API key, or fail with an actionable message."""
+    load_dotenv_key()
     key = os.getenv("ANTHROPIC_API_KEY", "").strip()
     if not key:
         raise RuntimeError(
