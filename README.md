@@ -47,5 +47,15 @@ voice, banned phrases, and the verify-AI caveat are defined once.
 ## Tests
 
 ```bash
-python -m unittest discover -s tests
+python -m unittest discover -s tests        # offline, no API key needed
+python3 scripts/verify_live.py --content    # against the real API (~$0.01)
 ```
+
+`verify_live.py` checks what offline tests cannot: that generated posts meet
+their contract (variation count, hashtag count, length, CTA present, distinct
+hooks, no filler phrases) and reports real token spend.
+
+## Token spend
+
+`agent.usage_summary()` returns calls, tokens, and cost in USD for the current
+process, priced per model in `agent.PRICING`.

@@ -15,14 +15,14 @@ from __future__ import annotations
 import os
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 import anthropic
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-MODEL = os.getenv("CONTENT_MODEL", "claude-haiku-4-5-20251001")
+MODEL = os.getenv("CONTENT_MODEL", "claude-haiku-4-5")
 LANGUAGE = os.getenv("CONTENT_LANGUAGE", "english").strip().lower()
 
 # ── Brand: written once, shared by every platform ──────────────────────────
@@ -252,6 +252,41 @@ _LEADING_LABEL = re.compile(r"^\s*(?:post|tweet|idea|script|video|variation|opti
 
 TRANSIENT_STATUS = frozenset({408, 409, 429, 500, 502, 503, 504})
 
+# USD per million tokens (input, output), verified against current pricing.
+PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+}
+
+
+@dataclass
+class Usage:
+    """Token usage for one API call."""
+
+    model: str
+    input_tokens: int
+    output_tokens: int
+
+    @property
+    def cost_usd(self) -> float:
+        """Cost of this call, or 0.0 for a model with no published rate here."""
+        rate_in, rate_out = PRICING.get(self.model, (0.0, 0.0))
+        return (self.input_tokens * rate_in + self.output_tokens * rate_out) / 1_000_000
+
+
+USAGE_LOG: list[Usage] = []
+
+
+def usage_summary() -> dict[str, float | int]:
+    """Total tokens and cost across every call this process has made."""
+    return {
+        "calls": len(USAGE_LOG),
+        "input_tokens": sum(u.input_tokens for u in USAGE_LOG),
+        "output_tokens": sum(u.output_tokens for u in USAGE_LOG),
+        "cost_usd": round(sum(u.cost_usd for u in USAGE_LOG), 6),
+    }
+
 
 def _call(system: str, user: str, max_tokens: int, attempts: int = 3) -> str:
     """Call the model, retrying transient failures with exponential backoff."""
@@ -263,6 +298,11 @@ def _call(system: str, user: str, max_tokens: int, attempts: int = 3) -> str:
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
+            USAGE_LOG.append(Usage(
+                model=MODEL,
+                input_tokens=message.usage.input_tokens,
+                output_tokens=message.usage.output_tokens,
+            ))
             return message.content[0].text
         except Exception as exc:
             status = getattr(exc, "status_code", None)

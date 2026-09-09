@@ -41,6 +41,13 @@ No API key or network needed — the loop takes an injected client.
 python -m unittest discover -s tests
 ```
 
+To verify against the real API (spends about a cent):
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+python3 scripts/verify_live.py
+```
+
 ## Architecture
 
 ```
@@ -90,10 +97,11 @@ blocked command.
 
 ## Known limitations
 
-- **Not run against the live API.** No `ANTHROPIC_API_KEY` was available in the
+- **Not yet run against the live API.** No credentials were available in the
   build environment. Every layer is covered by offline tests against a fake
-  client, and the SDK interface was verified against the installed
-  `anthropic` package — but the first real API round-trip is unverified.
+  client, and the SDK interface was verified against the installed `anthropic`
+  package — but the first real API round-trip is unverified. Run
+  `scripts/verify_live.py` to close this.
 - Command classification is a denylist plus a safe-binary allowlist. It is a
   speed bump against mistakes, not a sandbox. For untrusted work, run the agent
   in a container.
