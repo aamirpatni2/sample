@@ -78,6 +78,103 @@ class TestWriteFile(ToolTestCase):
         self.assertFalse(Path("/tmp/evil.py").exists())
 
 
+class TestEditFile(ToolTestCase):
+    """Targeted edits, so a one-line change cannot lose the rest of a file."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        (self.root / "calc.py").write_text(
+            "def add(a, b):\n"
+            "    return a - b\n"
+            "\n"
+            "def sub(a, b):\n"
+            "    return a - b\n"
+        )
+
+    def test_replaces_the_named_text_only(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "def add(a, b):\n    return a - b",
+             "new_string": "def add(a, b):\n    return a + b"},
+            self.ctx,
+        )
+        self.assertFalse(result.is_error, result.content)
+        text = (self.root / "calc.py").read_text()
+        self.assertIn("return a + b", text)
+        self.assertIn("def sub(a, b):", text)  # rest of the file survives
+
+    def test_ambiguous_match_is_refused(self) -> None:
+        """Editing the wrong one of several matches corrupts code silently."""
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "return a - b", "new_string": "return a + b"},
+            self.ctx,
+        )
+        self.assertTrue(result.is_error)
+        self.assertIn("appears 2 times", result.content)
+        self.assertEqual((self.root / "calc.py").read_text().count("return a - b"), 2)
+
+    def test_missing_text_is_reported_not_guessed(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "def multiply", "new_string": "x"},
+            self.ctx,
+        )
+        self.assertTrue(result.is_error)
+        self.assertIn("not found", result.content)
+
+    def test_deletion_via_empty_new_string(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "\ndef sub(a, b):\n    return a - b\n",
+             "new_string": ""},
+            self.ctx,
+        )
+        self.assertFalse(result.is_error, result.content)
+        self.assertNotIn("def sub", (self.root / "calc.py").read_text())
+
+    def test_empty_old_string_is_refused(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "", "new_string": "x"},
+            self.ctx,
+        )
+        self.assertTrue(result.is_error)
+
+    def test_identical_strings_are_refused(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "return a - b", "new_string": "return a - b"},
+            self.ctx,
+        )
+        self.assertTrue(result.is_error)
+
+    def test_missing_file_is_an_error(self) -> None:
+        result = dispatch(
+            "edit_file", {"path": "nope.py", "old_string": "a", "new_string": "b"}, self.ctx
+        )
+        self.assertTrue(result.is_error)
+
+    def test_workspace_escape_is_refused(self) -> None:
+        result = dispatch(
+            "edit_file",
+            {"path": "../../etc/hosts", "old_string": "localhost", "new_string": "evil"},
+            self.ctx,
+        )
+        self.assertTrue(result.is_error)
+        self.assertIn("guardrail", result.content.lower())
+
+    def test_edit_needs_no_approval(self) -> None:
+        """Editing inside the workspace is the agent's job; overwriting is not."""
+        ctx = ToolContext(workspace=self.root, approve=never_approve)
+        result = dispatch(
+            "edit_file",
+            {"path": "calc.py", "old_string": "def add(a, b):", "new_string": "def plus(a, b):"},
+            ctx,
+        )
+        self.assertFalse(result.is_error, result.content)
+
+
 class TestListFiles(ToolTestCase):
     def test_lists_workspace(self) -> None:
         result = dispatch("list_files", {}, self.ctx)

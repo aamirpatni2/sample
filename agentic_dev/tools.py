@@ -70,6 +70,25 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "edit_file",
+        "description": (
+            "Replace an exact piece of text in an existing file. Prefer this over "
+            "write_file for changes to a file that already exists: it touches only "
+            "the named text, so the rest of the file cannot be lost. old_string must "
+            "appear exactly once, and must include enough surrounding context to be "
+            "unique."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path relative to the workspace root."},
+                "old_string": {"type": "string", "description": "Exact text to replace, including indentation."},
+                "new_string": {"type": "string", "description": "Replacement text. Empty string deletes."},
+            },
+            "required": ["path", "old_string", "new_string"],
+        },
+    },
+    {
         "name": "list_files",
         "description": "List files and directories under a workspace path, up to a depth of 3.",
         "input_schema": {
@@ -143,6 +162,42 @@ def _write_file(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     return ToolResult(f"Wrote {len(content)} characters to {args['path']}")
 
 
+def _edit_file(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
+    path = resolve_in_workspace(ctx.workspace, args["path"])
+    old, new = args["old_string"], args["new_string"]
+
+    if not path.is_file():
+        return ToolResult(f"Not a file: {args['path']}", is_error=True)
+    if old == new:
+        return ToolResult("old_string and new_string are identical.", is_error=True)
+    if not old:
+        return ToolResult("old_string is empty; use write_file to create a file.", is_error=True)
+
+    content = path.read_text(encoding="utf-8")
+    occurrences = content.count(old)
+    if occurrences == 0:
+        return ToolResult(
+            "old_string not found. It must match the file exactly, including "
+            "whitespace and indentation. Read the file again before retrying.",
+            is_error=True,
+        )
+    if occurrences > 1:
+        # Editing the wrong one of several matches corrupts working code
+        # silently, so ambiguity is refused rather than guessed at.
+        return ToolResult(
+            f"old_string appears {occurrences} times. Include more surrounding "
+            "context so it matches exactly one place.",
+            is_error=True,
+        )
+
+    path.write_text(content.replace(old, new), encoding="utf-8")
+    delta = len(new) - len(old)
+    return ToolResult(
+        f"Edited {args['path']} ({delta:+d} characters). "
+        "Re-read the file if you need updated line numbers."
+    )
+
+
 def _list_files(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     root = resolve_in_workspace(ctx.workspace, args.get("path") or ".")
     if not root.is_dir():
@@ -207,6 +262,7 @@ def _run_command(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
 _HANDLERS: dict[str, Callable[[dict[str, Any], ToolContext], ToolResult]] = {
     "read_file": _read_file,
     "write_file": _write_file,
+    "edit_file": _edit_file,
     "list_files": _list_files,
     "run_command": _run_command,
 }

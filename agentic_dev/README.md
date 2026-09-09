@@ -53,7 +53,7 @@ python3 scripts/verify_live.py
 ```
 cli.py         terminal UI, approval prompts
   └─ loop.py   model call → tool use → tool result → repeat
-       ├─ tools.py       read_file · write_file · list_files · run_command
+       ├─ tools.py       read_file · write_file · edit_file · list_files · run_command
        ├─ compaction.py  structural history trimming
        ├─ runlog.py      redacted JSONL event log
        └─ guardrails.py  workspace scope · command policy · secret redaction
@@ -73,7 +73,7 @@ destructive action still cannot perform one.
 | Filesystem | All paths resolve inside the workspace. `..`, absolute paths, and symlink escapes are refused. |
 | Commands | Classified `SAFE` / `NEEDS_APPROVAL` / `BLOCKED`. Chains take the risk of their worst segment, so `ls && rm -rf /` is blocked. Unrecognised commands default to asking. |
 | Blocked outright | `sudo`, disk operations, `curl … \| sh`, force push, fork bombs, reading secret stores. No approval can override these. |
-| Writes | New files write freely; overwriting an existing file needs approval. |
+| Writes | New files write freely; overwriting an existing file needs approval. `edit_file` replaces exact text and refuses an ambiguous match, so it cannot silently change the wrong place. |
 | Network | Any egress (`curl`, `ssh`, `scp`) needs approval. |
 | Secrets | Credential-shaped strings are redacted from every tool result, log line, and error message. |
 | Timeouts | Every command has one; a hung process cannot stall the loop. |
@@ -109,3 +109,10 @@ blocked command.
 - Compaction trims oldest turns structurally; it does not summarise them, so
   detail in trimmed turns is lost rather than condensed.
 - Single agent, no sub-agent delegation (deliberate: master prompt §5 rung E).
+- **Only exercised on a small task.** The live check verifies one read and one
+  answer. The master prompt's discovery interview (§4), specification (§7),
+  TDD loop (§9), local validation (§14) and deployment (§15) are prompt-driven
+  behaviours that have not been run end to end.
+- No knowledge source about Aamir is wired in, so §1 identity questions are
+  correctly answered with "I don't know" rather than from a document.
+- No evaluation harness for the §11 scorecard.

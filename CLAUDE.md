@@ -86,6 +86,11 @@ cli.py → loop.py → tools.py → guardrails.py
 decision that makes the whole package testable with no API key. Keep it that way;
 tests drive it with a scripted fake client.
 
+`edit_file` is the tool for changing an existing file; `write_file` rewrites
+whole files and needs approval to overwrite. An `edit_file` call whose
+`old_string` matches more than once is refused rather than guessed at — picking
+the wrong match corrupts working code silently.
+
 **Guardrails are enforced in code, never by prompting.** `tests/test_security.py`
 asserts the load-bearing property: a model fully obeying an injected instruction,
 with a human approving everything, still cannot run a blocked command.
