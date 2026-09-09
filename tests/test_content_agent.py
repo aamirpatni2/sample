@@ -96,8 +96,11 @@ class TestCharLimitEnforcement(unittest.TestCase):
 
     def test_hashtags_are_dropped_before_words(self) -> None:
         """Hashtags carry the least meaning, so they go first."""
-        body = "This is the actual point of the tweet and it matters. " * 4
+        # Must genuinely exceed the limit, or nothing is trimmed and the
+        # assertion tests nothing.
+        body = "This is the actual point of the tweet and it matters. " * 6
         text = body + "#One #Two #Three #Four"
+        self.assertGreater(len(text), 280, "test input must exceed the limit")
         result = agent.fit_to_limit(text, 280)
         self.assertLess(result.count("#"), 4)
         self.assertIn("actual point", result)
