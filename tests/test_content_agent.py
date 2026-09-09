@@ -76,6 +76,57 @@ class TestBrandAndLanguage(unittest.TestCase):
             self.assertIn("NEVER WRITE", system, f"{name} missing anti-slop rules")
 
 
+class TestCharLimitEnforcement(unittest.TestCase):
+    """Hard platform limits are guaranteed in code, not requested in the prompt.
+
+    A live thread run produced a 6th tweet over 280 characters despite the
+    prompt saying otherwise -- models cannot count characters.
+    """
+
+    def test_short_text_is_untouched(self) -> None:
+        self.assertEqual(agent.fit_to_limit("Short tweet.", 280), "Short tweet.")
+
+    def test_text_at_the_limit_is_untouched(self) -> None:
+        text = "x" * 280
+        self.assertEqual(agent.fit_to_limit(text, 280), text)
+
+    def test_long_text_is_brought_under_the_limit(self) -> None:
+        text = "word " * 100
+        self.assertLessEqual(len(agent.fit_to_limit(text, 280)), 280)
+
+    def test_hashtags_are_dropped_before_words(self) -> None:
+        """Hashtags carry the least meaning, so they go first."""
+        body = "This is the actual point of the tweet and it matters. " * 4
+        text = body + "#One #Two #Three #Four"
+        result = agent.fit_to_limit(text, 280)
+        self.assertLess(result.count("#"), 4)
+        self.assertIn("actual point", result)
+
+    def test_never_ends_mid_word(self) -> None:
+        text = "supercalifragilistic " * 40
+        result = agent.fit_to_limit(text, 280)
+        self.assertTrue(result.endswith("supercalifragilistic"), result[-30:])
+
+    def test_thread_numbering_survives(self) -> None:
+        text = "4/ " + ("word " * 90)
+        self.assertTrue(agent.fit_to_limit(text, 280).startswith("4/"))
+
+    def test_only_hashtags_still_terminates(self) -> None:
+        """Pathological input must not loop forever."""
+        self.assertLessEqual(len(agent.fit_to_limit("#tag " * 200, 280)), 280)
+
+    def test_platforms_with_hard_limits_declare_them(self) -> None:
+        self.assertEqual(agent.PLATFORMS["tweet"].char_limit, 280)
+        self.assertEqual(agent.PLATFORMS["thread"].char_limit, 280)
+        self.assertIsNone(agent.PLATFORMS["facebook"].char_limit)
+
+    def test_prompts_ask_for_words_not_characters(self) -> None:
+        """A word budget is obeyable; a character count is not."""
+        for name in ("tweet", "thread"):
+            with self.subTest(platform=name):
+                self.assertIn("40 words", agent.PLATFORMS[name].rules)
+
+
 class TestLanguageControl(unittest.TestCase):
     """The setting must actually control the output, and be verifiable."""
 

@@ -120,6 +120,8 @@ class Platform:
     # False when the parts form one artifact (a thread) rather than
     # independent alternatives the user picks between.
     variations: bool = True
+    # Hard platform ceiling, enforced in code. None means no ceiling.
+    char_limit: int | None = None
 
 
 FACEBOOK_TEMPLATE = f"""EXACT TEMPLATE — follow this structure every time:
@@ -148,19 +150,21 @@ PLATFORMS: dict[str, Platform] = {
     "tweet": Platform(
         rules=(
             "You write X (Twitter) posts for Aamir Patni.\n\n"
-            "Each tweet: under 280 characters. Hook on the first line. "
+            "Each tweet: at most 40 words, so it clears X's 280-character limit. "
+            "Hook on the first line. "
             "End with 2-3 relevant hashtags. Emojis are optional and sparing.\n\n"
             f"{HOOK_TYPES}"
         ),
         delimiter="---TWEET---",
         count=3,
         max_tokens=700,
+        char_limit=280,
         instruction="Write {count} tweet variations about this.",
     ),
     "thread": Platform(
         rules=(
             "You write X (Twitter) threads for Aamir Patni.\n\n"
-            "Exactly 6 tweets, each under 280 characters:\n"
+            "Exactly 6 tweets, each at most 40 words so it fits X's 280-character limit:\n"
             "1. Hook — start with 🧵, a bold specific claim\n"
             "2. What happened\n"
             "3. Why it matters\n"
@@ -173,6 +177,7 @@ PLATFORMS: dict[str, Platform] = {
         delimiter="---TWEET---",
         count=6,
         max_tokens=1200,
+        char_limit=280,
         instruction="Write one 6-tweet thread about this.",
         variations=False,
     ),
@@ -366,6 +371,54 @@ def split_variations(raw: str, delimiter: str, count: int) -> list[str]:
     return cleaned[:count]
 
 
+def fit_to_limit(text: str, limit: int) -> str:
+    """Force *text* under *limit* characters, losing as little meaning as possible.
+
+    Models cannot count characters, so the prompt asks for a word budget and
+    this guarantees the hard ceiling. Trailing hashtags go first — they carry
+    the least meaning — then whole trailing words, so the result never ends
+    mid-word.
+    """
+    if len(text) <= limit:
+        return text
+
+    words = text.split()
+    while len(" ".join(words)) > limit and any(w.startswith("#") for w in words):
+        for index in range(len(words) - 1, -1, -1):
+            if words[index].startswith("#"):
+                del words[index]
+                break
+
+    while words and len(" ".join(words)) > limit:
+        words.pop()
+
+    return " ".join(words)
+
+
+def _enforce_limit(parts: list[str], limit: int) -> list[str]:
+    """Bring every part under *limit*, asking the model once before trimming.
+
+    A rewrite keeps the meaning; the deterministic trim is the guarantee.
+    """
+    fixed: list[str] = []
+    for part in parts:
+        if len(part) <= limit:
+            fixed.append(part)
+            continue
+        try:
+            rewritten = _call(
+                "You shorten social posts without losing their point. "
+                "Reply with the shortened post only — no preamble, no quotes.",
+                f"Rewrite this in under {limit - 20} characters, keeping the hook, "
+                f"the meaning, and any leading numbering such as '4/':\n\n{part}",
+                max_tokens=300,
+            ).strip()
+        except Exception:
+            rewritten = part
+        fixed.append(fit_to_limit(rewritten if rewritten else part, limit))
+    return fixed
+
+
 def _build_user_prompt(platform: Platform, headline: str, summary: str, tone: str) -> str:
     """Assemble the user turn: the news, the tone, and the output contract."""
     tone_note = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["informative"])
@@ -398,7 +451,10 @@ def generate(platform_name: str, headline: str, summary: str, tone: str) -> list
     system = _system_prompt(platform)
     user = _build_user_prompt(platform, headline, summary, tone)
     raw = _call(system, user, platform.max_tokens)
-    return split_variations(raw, platform.delimiter, platform.count)
+    parts = split_variations(raw, platform.delimiter, platform.count)
+    if platform.char_limit is not None:
+        parts = _enforce_limit(parts, platform.char_limit)
+    return parts
 
 
 # ── Public API (unchanged signatures — main.py needs no edits) ──────────────
@@ -448,7 +504,7 @@ def generate_single_tweet(headline: str, summary: str) -> str:
         "Write ONE tweet. Hook on the first line, 2-3 hashtags at the end.\n"
         "Output only the tweet."
     )
-    return _call(system, user, 200).strip()
+    return fit_to_limit(_call(system, user, 200).strip(), 280)
 
 
 # ── Output validation ──────────────────────────────────────────────────────
