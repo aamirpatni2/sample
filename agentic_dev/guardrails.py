@@ -47,31 +47,48 @@ def resolve_in_workspace(workspace: Path, candidate: str) -> Path:
 
 # ── Command permissions ────────────────────────────────────────────────────
 
-# Read-only binaries safe to run unattended.
+# Strictly read-only binaries. A binary belongs here only if NO invocation of
+# it can write, delete, execute, or reach the network. Interpreters (python,
+# node, awk), in-place editors (sed -i), and tools with exec/delete flags
+# (find -delete) are deliberately absent: their risk depends on their flags,
+# which a binary-level allowlist cannot express.
 _SAFE_BINARIES = frozenset({
-    "ls", "cat", "head", "tail", "wc", "grep", "rg", "find", "file", "stat",
-    "pwd", "echo", "which", "tree", "diff", "sort", "uniq", "cut", "sed",
-    "awk", "date", "env", "python3", "python", "pytest", "node",
+    "ls", "cat", "head", "tail", "wc", "grep", "rg", "file", "stat", "pwd",
+    "echo", "which", "tree", "diff", "sort", "uniq", "cut", "date",
+    "basename", "dirname", "realpath", "du", "df",
 })
 
 # Read-only git subcommands. Anything else under git needs approval.
 _SAFE_GIT = frozenset({"status", "diff", "log", "show", "branch", "remote", "ls-files"})
 
+# Run arbitrary code by design — never classifiable as safe from the binary alone.
+_INTERPRETERS = frozenset({
+    "python", "python3", "node", "deno", "bun", "ruby", "perl", "php", "awk",
+    "sh", "bash", "zsh", "fish", "eval", "exec", "xargs", "pytest", "tox", "make",
+})
+
+_FILESYSTEM_WRITERS = frozenset({"rm", "mv", "cp", "mkdir", "rmdir", "touch", "chmod", "chown", "ln", "truncate"})
+_PACKAGE_MANAGERS = frozenset({"pip", "pip3", "npm", "yarn", "pnpm", "apt", "apt-get", "brew", "gem", "cargo"})
+_NETWORK_TOOLS = frozenset({"curl", "wget", "ssh", "scp", "rsync", "nc", "netcat", "ftp", "telnet"})
+# Reads or writes files depending on flags (sed -i, find -delete).
+_FLAG_DEPENDENT = frozenset({"sed", "find", "env", "printenv", "tee", "dd"})
+
 # Patterns that are never run, with or without approval.
 _BLOCKED_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\brm\s+(-\w+\s+)*-\w*[rf]\w*\s+/(\s|$)"), "recursive delete of /"),
-    (re.compile(r"\b(mkfs|fdisk|dd)\b"), "disk-level operation"),
-    (re.compile(r"\bcurl\b.*\|\s*(ba)?sh\b"), "piping a download into a shell"),
-    (re.compile(r"\bwget\b.*\|\s*(ba)?sh\b"), "piping a download into a shell"),
+    (re.compile(r"\b(mkfs|fdisk)\b"), "disk-level operation"),
+    (re.compile(r"\b(curl|wget)\b.*\|\s*(ba)?sh\b"), "piping a download into a shell"),
     (re.compile(r"\bsudo\b"), "privilege escalation"),
     (re.compile(r"\bchmod\s+(-\w+\s+)*777\b"), "world-writable permissions"),
     (re.compile(r"\bgit\s+push\b.*--force(?!-with-lease)"), "force push"),
     (re.compile(r":\(\)\s*\{.*\}\s*;?\s*:"), "fork bomb"),
-    (re.compile(r"\b(history|cat)\b.*\.(env|aws/credentials|ssh/id_)"), "reading a secret store"),
+    (re.compile(r"\b(history|cat|less|more|head|tail)\b[^|;&]*\.(env|pem)\b"), "reading a secret file"),
+    (re.compile(r"\b(cat|less|more|head|tail)\b[^|;&]*(\.aws/credentials|\.ssh/id_)"), "reading a secret store"),
 )
 
-# Shell metacharacters that split a command line into several commands.
-_CHAIN_SPLIT = re.compile(r"&&|\|\||[;|]")
+# Tokens that redirect output — these let any command write to any path.
+_REDIRECTS = frozenset({">", ">>", "<", "<<", "<<<", ">&", "&>"})
+_SEPARATORS = frozenset({";", "|", "||", "&&", "&"})
 
 
 @dataclass(frozen=True)
@@ -80,6 +97,18 @@ class CommandVerdict:
 
     risk: Risk
     reason: str
+
+
+def _tokenize(command: str) -> list[str]:
+    """Split a command into quote-aware tokens, with shell operators separated.
+
+    Quoting matters: a ``;`` inside a quoted Python snippet is data, not a
+    command separator, and splitting on the raw string gets that wrong in both
+    directions.
+    """
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    return list(lexer)
 
 
 def classify_command(command: str) -> CommandVerdict:
@@ -100,9 +129,20 @@ def classify_command(command: str) -> CommandVerdict:
     if "`" in text or "$(" in text:
         return CommandVerdict(Risk.NEEDS_APPROVAL, "command substitution")
 
+    try:
+        tokens = _tokenize(text)
+    except ValueError as exc:
+        return CommandVerdict(Risk.NEEDS_APPROVAL, f"unparseable command ({exc})")
+    if not tokens:
+        return CommandVerdict(Risk.BLOCKED, "empty command")
+
+    # Redirection lets an otherwise read-only command write anywhere.
+    if any(token in _REDIRECTS for token in tokens):
+        return CommandVerdict(Risk.NEEDS_APPROVAL, "redirects output to a file")
+
     worst = Risk.SAFE
     reasons: list[str] = []
-    for segment in _CHAIN_SPLIT.split(text):
+    for segment in _split_segments(tokens):
         verdict = _classify_segment(segment)
         if verdict.risk is Risk.BLOCKED:
             return verdict
@@ -115,16 +155,19 @@ def classify_command(command: str) -> CommandVerdict:
     return CommandVerdict(Risk.NEEDS_APPROVAL, "; ".join(dict.fromkeys(reasons)))
 
 
-def _classify_segment(segment: str) -> CommandVerdict:
-    """Classify one command in a chain."""
-    segment = segment.strip()
-    if not segment:
-        return CommandVerdict(Risk.SAFE, "empty segment")
+def _split_segments(tokens: list[str]) -> list[list[str]]:
+    """Break a token list into separate commands on shell separators."""
+    segments: list[list[str]] = [[]]
+    for token in tokens:
+        if token in _SEPARATORS:
+            segments.append([])
+        else:
+            segments[-1].append(token)
+    return [segment for segment in segments if segment]
 
-    try:
-        parts = shlex.split(segment)
-    except ValueError as exc:  # unbalanced quotes
-        return CommandVerdict(Risk.NEEDS_APPROVAL, f"unparseable command ({exc})")
+
+def _classify_segment(parts: list[str]) -> CommandVerdict:
+    """Classify one command in a chain, given its tokens."""
     if not parts:
         return CommandVerdict(Risk.SAFE, "empty segment")
 
@@ -136,16 +179,25 @@ def _classify_segment(segment: str) -> CommandVerdict:
             return CommandVerdict(Risk.SAFE, "read-only git")
         return CommandVerdict(Risk.NEEDS_APPROVAL, f"git {sub} changes repository state")
 
-    if binary in {"pip", "pip3", "npm", "yarn", "apt", "apt-get", "brew"}:
+    if binary in _INTERPRETERS:
+        return CommandVerdict(Risk.NEEDS_APPROVAL, f"{binary} runs arbitrary code")
+    if binary in _FLAG_DEPENDENT:
+        return CommandVerdict(Risk.NEEDS_APPROVAL, f"{binary} can write or expose data depending on flags")
+    if binary in _PACKAGE_MANAGERS:
         return CommandVerdict(Risk.NEEDS_APPROVAL, f"{binary} installs software")
-
-    if binary in {"rm", "mv", "cp", "mkdir", "touch", "chmod", "chown", "ln"}:
+    if binary in _FILESYSTEM_WRITERS:
         return CommandVerdict(Risk.NEEDS_APPROVAL, f"{binary} modifies the filesystem")
-
-    if binary in {"curl", "wget", "ssh", "scp", "rsync", "nc"}:
+    if binary in _NETWORK_TOOLS:
         return CommandVerdict(Risk.NEEDS_APPROVAL, f"{binary} touches the network")
 
     if binary in _SAFE_BINARIES:
+        # Commands run with the workspace as cwd, so an absolute path or a home
+        # reference means this is reaching outside the workspace.
+        outside = [a for a in parts[1:] if a.startswith("/") or a.startswith("~")]
+        if outside:
+            return CommandVerdict(
+                Risk.NEEDS_APPROVAL, f"reads outside the workspace ({outside[0]})"
+            )
         return CommandVerdict(Risk.SAFE, "read-only command")
 
     return CommandVerdict(Risk.NEEDS_APPROVAL, f"unrecognised command {binary!r}")

@@ -23,17 +23,36 @@ YELLOW = "\033[33m"
 RESET = "\033[0m"
 
 
-def prompt_for_approval(action: str, detail: str) -> bool:
-    """Ask the human before a state-changing action. Default is no."""
-    print(f"\n{YELLOW}{BOLD}Approval needed:{RESET} {action}")
-    for line in detail.splitlines():
-        print(f"  {line}")
-    try:
-        answer = input(f"{YELLOW}Allow? [y/N] {RESET}").strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        return False
-    return answer in {"y", "yes"}
+class ApprovalPrompt:
+    """Asks the human before a state-changing action. Default is no.
+
+    Remembers "always" answers for the rest of the session, keyed on the exact
+    command, so a repeated step (running the test suite) is approved once
+    rather than every time.
+    """
+
+    def __init__(self) -> None:
+        self.remembered: set[str] = set()
+
+    def __call__(self, action: str, detail: str) -> bool:
+        key = f"{action}:{detail.splitlines()[0] if detail else ''}"
+        if key in self.remembered:
+            print(f"{DIM}  (already approved this session){RESET}")
+            return True
+
+        print(f"\n{YELLOW}{BOLD}Approval needed:{RESET} {action}")
+        for line in detail.splitlines():
+            print(f"  {line}")
+        try:
+            answer = input(f"{YELLOW}Allow? [y]es / [a]lways / [N]o {RESET}").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return False
+
+        if answer in {"a", "always"}:
+            self.remembered.add(key)
+            return True
+        return answer in {"y", "yes"}
 
 
 def print_event(event: str, detail: str) -> None:
@@ -59,7 +78,7 @@ def build_agent(settings: Settings, log_path: Path | None = None) -> AgenticDeve
         handler = tee(print_event, JsonlRunLog(log_path))
     context = ToolContext(
         workspace=settings.workspace,
-        approve=prompt_for_approval,
+        approve=ApprovalPrompt(),
         command_timeout=settings.command_timeout,
     )
     return AgenticDeveloper(
