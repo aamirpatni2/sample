@@ -22,6 +22,7 @@ class Settings:
     max_tokens: int = 8_000
     max_turns: int = 40
     command_timeout: int = 120
+    context_budget: int = 120_000
     prompt_path: Path = DEFAULT_PROMPT_PATH
 
     @classmethod
@@ -33,6 +34,7 @@ class Settings:
             max_tokens=int(os.getenv("AGENT_MAX_TOKENS", "8000")),
             max_turns=int(os.getenv("AGENT_MAX_TURNS", "40")),
             command_timeout=int(os.getenv("AGENT_COMMAND_TIMEOUT", "120")),
+            context_budget=int(os.getenv("AGENT_CONTEXT_BUDGET", "120000")),
             prompt_path=Path(os.getenv("AGENT_PROMPT_PATH", str(DEFAULT_PROMPT_PATH))),
         )
 

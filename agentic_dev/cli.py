@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .config import Settings, load_system_prompt, require_api_key
 from .loop import AgenticDeveloper
+from .runlog import JsonlRunLog, tee
 from .tools import ToolContext
 
 DIM = "\033[2m"
@@ -48,11 +49,14 @@ def print_event(event: str, detail: str) -> None:
         print(f"{YELLOW}  ! {detail}{RESET}")
 
 
-def build_agent(settings: Settings) -> AgenticDeveloper:
+def build_agent(settings: Settings, log_path: Path | None = None) -> AgenticDeveloper:
     """Wire up the agent from settings. Requires the API key to be set."""
     import anthropic  # imported here so --help works without the SDK installed
 
     client = anthropic.Anthropic(api_key=require_api_key())
+    handler = print_event
+    if log_path is not None:
+        handler = tee(print_event, JsonlRunLog(log_path))
     context = ToolContext(
         workspace=settings.workspace,
         approve=prompt_for_approval,
@@ -65,7 +69,8 @@ def build_agent(settings: Settings) -> AgenticDeveloper:
         model=settings.model,
         max_tokens=settings.max_tokens,
         max_turns=settings.max_turns,
-        on_event=print_event,
+        context_budget=settings.context_budget,
+        on_event=handler,
     )
 
 
@@ -74,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("task", nargs="*", help="Task to run. Omit for an interactive session.")
     parser.add_argument("--workspace", type=Path, default=None, help="Directory the agent may touch.")
     parser.add_argument("--model", default=None, help="Override the model id.")
+    parser.add_argument("--log", type=Path, default=None, help="Write a JSONL run log to this path.")
     args = parser.parse_args(argv)
 
     settings = Settings.from_env(workspace=args.workspace)
@@ -81,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
         settings.model = args.model
 
     try:
-        agent = build_agent(settings)
+        agent = build_agent(settings, log_path=args.log)
     except (RuntimeError, FileNotFoundError) as exc:
         print(f"Startup failed: {exc}", file=sys.stderr)
         return 1

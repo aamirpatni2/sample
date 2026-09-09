@@ -10,6 +10,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
+from .compaction import compact
 from .guardrails import redact
 from .tools import TOOL_SCHEMAS, ToolContext, dispatch
 
@@ -45,6 +46,8 @@ class AgenticDeveloper:
     model: str
     max_tokens: int = 8_000
     max_turns: int = 40
+    context_budget: int = 120_000
+    keep_recent: int = 8
     on_event: EventFn | None = None
     messages: list[dict[str, Any]] = field(default_factory=list)
 
@@ -98,8 +101,17 @@ class AgenticDeveloper:
             stopped_early=True,
         )
 
+    def _compact_if_needed(self) -> None:
+        """Trim history before it can overflow the context window."""
+        self.messages, trimmed = compact(
+            self.messages, self.context_budget, self.keep_recent
+        )
+        if trimmed:
+            self._emit("compact", f"trimmed {trimmed} earlier messages")
+
     def _create_with_retry(self, attempts: int = 3) -> Any:
         """Call the model, retrying transient failures with exponential backoff."""
+        self._compact_if_needed()
         last: Exception | None = None
         for attempt in range(attempts):
             try:

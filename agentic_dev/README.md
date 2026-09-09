@@ -19,7 +19,19 @@ export ANTHROPIC_API_KEY=sk-ant-...
 python -m agentic_dev                              # interactive, scoped to cwd
 python -m agentic_dev --workspace ./my-project     # scope to a directory
 python -m agentic_dev "review the auth module"     # one-shot
+python -m agentic_dev --log runs/today.jsonl       # record the session
 ```
+
+## Context and logging
+
+History is compacted automatically before each model call once it passes
+`AGENT_CONTEXT_BUDGET`. Trimming is structural and deterministic — no
+summarisation call — and the window boundary always lands where roles still
+alternate and no `tool_result` is separated from its `tool_use`. The original
+task is always kept.
+
+`--log` writes one redacted JSONL event per line, so a session can be replayed
+or turned into evaluation cases.
 
 ## Tests
 
@@ -35,6 +47,8 @@ python -m unittest discover -s tests
 cli.py         terminal UI, approval prompts
   └─ loop.py   model call → tool use → tool result → repeat
        ├─ tools.py       read_file · write_file · list_files · run_command
+       ├─ compaction.py  structural history trimming
+       ├─ runlog.py      redacted JSONL event log
        └─ guardrails.py  workspace scope · command policy · secret redaction
 config.py      settings from env, prompt loaded from disk
 ```
@@ -71,6 +85,7 @@ blocked command.
 | `AGENT_MAX_TOKENS` | `8000` | Per-response cap. |
 | `AGENT_MAX_TURNS` | `40` | Loop limit before it stops. |
 | `AGENT_COMMAND_TIMEOUT` | `120` | Per-command seconds. |
+| `AGENT_CONTEXT_BUDGET` | `120000` | Estimated tokens before history is trimmed. |
 | `AGENT_PROMPT_PATH` | `prompts/agentic-ai-developer.md` | Swap in a different prompt. |
 
 ## Known limitations
@@ -82,7 +97,7 @@ blocked command.
 - Command classification is a denylist plus a safe-binary allowlist. It is a
   speed bump against mistakes, not a sandbox. For untrusted work, run the agent
   in a container.
-- Conversation history grows unbounded; no compaction yet. Long sessions will
-  hit the context window.
 - No streaming — responses arrive whole.
+- Compaction trims oldest turns structurally; it does not summarise them, so
+  detail in trimmed turns is lost rather than condensed.
 - Single agent, no sub-agent delegation (deliberate: master prompt §5 rung E).

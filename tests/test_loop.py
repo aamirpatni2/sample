@@ -197,6 +197,28 @@ class TestConversationState(LoopTestCase):
         self.assertEqual(sent[-1]["content"], "two")
 
 
+class TestCompactionInLoop(LoopTestCase):
+    def test_long_history_is_compacted_before_the_call(self) -> None:
+        agent = self.build(
+            [FakeResponse([FakeText("ok")], "end_turn")],
+            context_budget=50,
+            keep_recent=2,
+        )
+        agent.messages = [
+            {"role": "user", "content": "original task " + "x" * 4000},
+            {"role": "assistant", "content": [{"type": "text", "text": "y" * 4000}]},
+            {"role": "user", "content": "z" * 4000},
+            {"role": "assistant", "content": [{"type": "text", "text": "w" * 4000}]},
+        ]
+        events: list[str] = []
+        agent.on_event = lambda e, d: events.append(e)
+        agent.run("next")
+        sent = self.client.messages.requests[0]["messages"]
+        self.assertIn("compact", events)
+        self.assertLess(len(sent), 5)
+        self.assertTrue(sent[0]["content"].startswith("original task"))
+
+
 class TestEvents(LoopTestCase):
     def test_events_are_redacted(self) -> None:
         seen: list[tuple[str, str]] = []
