@@ -15,6 +15,19 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 ## Run
 
+### Dashboard (recommended)
+
+```bash
+python -m agentic_dev.server --workspace ./my-project
+```
+
+Opens a browser at `http://127.0.0.1:8100`. Approval requests appear as
+Allow/Deny buttons rather than a terminal prompt; tool calls stream in as the
+agent works. On Windows, `agent-dashboard.bat` does the same and checks the API
+key is set first.
+
+### Terminal
+
 ```bash
 python -m agentic_dev                              # interactive, scoped to cwd
 python -m agentic_dev --workspace ./my-project     # scope to a directory
@@ -52,6 +65,7 @@ python3 scripts/verify_live.py
 
 ```
 cli.py         terminal UI, approval prompts
+server.py      web dashboard (FastAPI + WebSocket)
   └─ loop.py   model call → tool use → tool result → repeat
        ├─ tools.py       read_file · write_file · edit_file · list_files · run_command
        ├─ compaction.py  structural history trimming

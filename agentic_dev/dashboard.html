@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic AI Developer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-base:#07090f; --bg-surface:#0c0f1a; --bg-card:#111827;
+  --bg-raised:#1a2235; --bg-hover:#1e293b;
+  --border:#1e2d3d; --border-dim:#131e2c;
+  --text-primary:#e2e8f0; --text-secondary:#94a3b8; --text-muted:#4a5568;
+  --accent:#7c3aed; --accent-glow:rgba(124,58,237,.25); --accent-2:#a78bfa;
+  --green:#22c55e; --red:#ef4444; --amber:#eab308; --blue:#3b82f6; --gold:#f59e0b;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg-base); color:var(--text-primary);
+  font-family:'Inter',system-ui,sans-serif; font-size:14px; line-height:1.6;
+  height:100vh; display:flex; flex-direction:column;
+}
+
+/* ── header ─────────────────────────────────────────── */
+header{
+  display:flex; align-items:center; gap:14px;
+  padding:14px 22px; background:var(--bg-surface);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.logo{
+  width:32px; height:32px; border-radius:var(--r-sm); flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:grid; place-items:center; font-weight:700; font-size:15px; color:#fff;
+}
+h1{font-size:15px; font-weight:600; margin:0; letter-spacing:-.01em}
+.sub{font-size:12px; color:var(--text-muted); font-family:var(--mono)}
+.spacer{flex:1}
+.pill{
+  font-family:var(--mono); font-size:11px; padding:5px 11px;
+  border-radius:999px; background:var(--bg-raised);
+  border:1px solid var(--border); color:var(--text-secondary); white-space:nowrap;
+}
+.status{display:flex; align-items:center; gap:7px}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--text-muted); flex-shrink:0}
+.dot.on{background:var(--green); box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.dot.busy{background:var(--amber); animation:pulse 1.2s ease-in-out infinite}
+.dot.off{background:var(--red)}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ── stream ─────────────────────────────────────────── */
+main{flex:1; overflow-y:auto; padding:26px 22px}
+.wrap{max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:14px}
+
+.empty{text-align:center; padding:70px 20px; color:var(--text-muted)}
+.empty h2{font-size:19px; color:var(--text-secondary); font-weight:600; margin:0 0 8px}
+.examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:22px}
+.chip{
+  font-size:12.5px; padding:8px 14px; border-radius:999px; cursor:pointer;
+  background:var(--bg-card); border:1px solid var(--border); color:var(--text-secondary);
+  transition:.15s;
+}
+.chip:hover{border-color:var(--accent); color:var(--text-primary); background:var(--bg-raised)}
+
+.msg{padding:14px 17px; border-radius:var(--r-md); border:1px solid var(--border-dim); background:var(--bg-card)}
+.msg.you{background:var(--bg-raised); border-color:var(--border)}
+.who{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--text-muted); font-weight:600; margin-bottom:7px;
+}
+.msg.you .who{color:var(--accent-2)}
+.body{white-space:pre-wrap; word-wrap:break-word}
+
+/* tool activity */
+.tool{
+  font-family:var(--mono); font-size:12px; padding:9px 14px;
+  border-left:2px solid var(--border); color:var(--text-secondary);
+  background:var(--bg-surface); border-radius:0 var(--r-sm) var(--r-sm) 0;
+  display:flex; gap:9px; align-items:baseline;
+}
+.tool .name{color:var(--accent-2); font-weight:500; flex-shrink:0}
+.tool .arg{color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.tool.result{border-left-color:var(--border-dim); color:var(--text-muted)}
+.tool.warn{border-left-color:var(--amber); color:var(--amber)}
+
+/* approval */
+.approval{
+  border:1px solid var(--gold); border-radius:var(--r-md); overflow:hidden;
+  background:rgba(245,158,11,.05);
+}
+.approval h3{
+  margin:0; padding:12px 17px; font-size:12.5px; font-weight:600; color:var(--gold);
+  background:rgba(245,158,11,.1); display:flex; align-items:center; gap:8px;
+}
+.approval pre{
+  margin:0; padding:14px 17px; font-family:var(--mono); font-size:12.5px;
+  white-space:pre-wrap; word-break:break-all; color:var(--text-primary);
+}
+.acts{display:flex; gap:9px; padding:0 17px 14px}
+button{
+  font-family:inherit; font-size:13px; font-weight:500; padding:9px 17px;
+  border-radius:var(--r-sm); border:1px solid var(--border); cursor:pointer;
+  background:var(--bg-raised); color:var(--text-primary); transition:.15s;
+}
+button:hover:not(:disabled){background:var(--bg-hover)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button.allow{background:var(--green); border-color:var(--green); color:#06210f; font-weight:600}
+button.allow:hover:not(:disabled){filter:brightness(1.12)}
+button.deny{background:transparent; border-color:var(--red); color:var(--red)}
+button.deny:hover:not(:disabled){background:rgba(239,68,68,.12)}
+
+.done{
+  font-family:var(--mono); font-size:11.5px; color:var(--text-muted);
+  text-align:center; padding:5px; border-top:1px dashed var(--border-dim); margin-top:4px;
+}
+.fatal{border-color:var(--red); background:rgba(239,68,68,.07)}
+.fatal .who{color:var(--red)}
+
+/* ── composer ───────────────────────────────────────── */
+footer{
+  padding:16px 22px 20px; background:var(--bg-surface);
+  border-top:1px solid var(--border); flex-shrink:0;
+}
+.composer{max-width:860px; margin:0 auto; display:flex; gap:10px; align-items:flex-end}
+textarea{
+  flex:1; resize:none; font-family:inherit; font-size:14px; line-height:1.55;
+  padding:12px 15px; border-radius:var(--r-md); background:var(--bg-card);
+  border:1px solid var(--border); color:var(--text-primary);
+  min-height:48px; max-height:190px; transition:border-color .15s;
+}
+textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow)}
+textarea::placeholder{color:var(--text-muted)}
+button.send{
+  background:var(--accent); border-color:var(--accent); color:#fff;
+  font-weight:600; height:48px; padding:0 22px;
+}
+button.send:hover:not(:disabled){background:var(--accent-2)}
+.hint{
+  max-width:860px; margin:9px auto 0; font-size:11.5px; color:var(--text-muted);
+  display:flex; justify-content:space-between; gap:12px;
+}
+kbd{
+  font-family:var(--mono); font-size:10.5px; padding:1px 5px; border-radius:4px;
+  background:var(--bg-raised); border:1px solid var(--border); color:var(--text-secondary);
+}
+@media (max-width:640px){
+  header{padding:12px 14px; gap:10px} .pill.hide-sm{display:none}
+  main{padding:18px 14px} footer{padding:12px 14px 16px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">A</div>
+  <div>
+    <h1>Agentic AI Developer</h1>
+    <div class="sub" id="workspace">connecting…</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="pill hide-sm" id="model">—</div>
+  <div class="pill status"><span class="dot" id="dot"></span><span id="state">connecting</span></div>
+</header>
+
+<main id="main">
+  <div class="wrap" id="stream">
+    <div class="empty" id="empty">
+      <h2>What should I build?</h2>
+      <div>Describe a problem. I'll decide whether it needs an agent before writing any code.</div>
+      <div class="examples">
+        <div class="chip">Review this repo and list the three biggest risks</div>
+        <div class="chip">Add a health check endpoint, with a test</div>
+        <div class="chip">Why is the test suite slow?</div>
+        <div class="chip">Should this workflow be an AI agent?</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="Describe the task…" disabled></textarea>
+    <button class="send" id="send" disabled>Send</button>
+  </div>
+  <div class="hint">
+    <span><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline</span>
+    <span id="spend"></span>
+  </div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const stream = $('stream'), input = $('input'), send = $('send');
+let socket = null, busy = false;
+
+function setState(text, cls){
+  $('state').textContent = text;
+  $('dot').className = 'dot ' + (cls || '');
+}
+
+function scroll(){ $('main').scrollTop = $('main').scrollHeight; }
+
+function node(cls, html){
+  $('empty')?.remove();
+  const el = document.createElement('div');
+  el.className = cls;
+  el.innerHTML = html;
+  stream.appendChild(el);
+  scroll();
+  return el;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function connect(){
+  socket = new WebSocket(`ws://${location.host}/ws`);
+
+  socket.onopen = () => {
+    setState('ready', 'on');
+    input.disabled = send.disabled = false;
+    input.focus();
+  };
+
+  socket.onclose = () => {
+    setState('disconnected', 'off');
+    input.disabled = send.disabled = true;
+  };
+
+  socket.onmessage = e => {
+    const m = JSON.parse(e.data);
+
+    if (m.type === 'started'){ busy = true; setState('working', 'busy'); send.disabled = true; }
+
+    else if (m.type === 'event'){
+      if (m.event === 'text' && m.detail.trim())
+        node('msg', `<div class="who">Agent</div><div class="body">${esc(m.detail)}</div>`);
+      else if (m.event === 'tool'){
+        const sp = m.detail.indexOf(' ');
+        const name = sp < 0 ? m.detail : m.detail.slice(0, sp);
+        const arg  = sp < 0 ? '' : m.detail.slice(sp + 1);
+        node('tool', `<span class="name">${esc(name)}</span><span class="arg">${esc(arg)}</span>`);
+      }
+      else if (m.event === 'tool_result')
+        node('tool result', `<span class="arg">${esc(m.detail.split('\n')[0])}</span>`);
+      else if (m.event === 'compact' || m.event === 'retry' || m.event === 'limit')
+        node('tool warn', `<span class="arg">${esc(m.detail)}</span>`);
+    }
+
+    else if (m.type === 'approval_request') approval(m);
+
+    else if (m.type === 'done'){
+      busy = false; setState('ready', 'on'); send.disabled = false;
+      if (m.text && m.text.trim())
+        node('msg', `<div class="who">Agent</div><div class="body">${esc(m.text)}</div>`);
+      node('done', `${m.turns} turns · ${m.tool_calls} tool calls${m.stopped_early ? ' · stopped at turn limit' : ''}`);
+      input.focus();
+    }
+
+    else if (m.type === 'error' || m.type === 'fatal'){
+      busy = false; setState('error', 'off'); send.disabled = false;
+      node('msg fatal', `<div class="who">Error</div><div class="body">${esc(m.detail)}</div>`);
+    }
+  };
+}
+
+function approval(m){
+  const box = node('approval', `
+    <h3>⚠ Approval needed — ${esc(m.action)}</h3>
+    <pre>${esc(m.detail)}</pre>
+    <div class="acts">
+      <button class="allow">Allow</button>
+      <button class="deny">Deny</button>
+    </div>`);
+
+  const answer = allow => {
+    socket.send(JSON.stringify({ type: 'approval', allow }));
+    box.querySelectorAll('button').forEach(b => b.disabled = true);
+    box.querySelector('.acts').insertAdjacentHTML('beforeend',
+      `<span style="align-self:center;font-size:12px;color:var(--text-muted)">
+         ${allow ? 'allowed' : 'denied'}</span>`);
+  };
+  box.querySelector('.allow').onclick = () => answer(true);
+  box.querySelector('.deny').onclick  = () => answer(false);
+}
+
+function submit(){
+  const text = input.value.trim();
+  if (!text || busy || !socket || socket.readyState !== 1) return;
+  node('msg you', `<div class="who">You</div><div class="body">${esc(text)}</div>`);
+  socket.send(JSON.stringify({ type: 'task', text }));
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+send.onclick = submit;
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); submit(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 190) + 'px';
+});
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('chip')){ input.value = e.target.textContent; input.focus(); }
+});
+
+fetch('/api/config').then(r => r.json()).then(c => {
+  $('model').textContent = c.model;
+  $('workspace').textContent = c.workspace;
+}).catch(() => {});
+
+connect();
+</script>
+</body>
+</html>

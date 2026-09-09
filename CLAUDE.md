@@ -78,9 +78,16 @@ and USD cost from `PRICING`.
 ## Agentic developer architecture (`agentic_dev/`)
 
 ```
-cli.py → loop.py → tools.py → guardrails.py
-                 → compaction.py, runlog.py
+cli.py     → loop.py → tools.py → guardrails.py
+server.py  ↗         → compaction.py, runlog.py
 ```
+
+Two front ends over the same loop: `cli.py` for the terminal, `server.py` for the
+browser dashboard (`python -m agentic_dev.server`). The agent loop is
+synchronous, so the server runs it in a worker thread; `server.Bridge` is the
+only place that boundary matters — it pushes events out and blocks the worker on
+approval answers coming back. A closed socket or a silent human both resolve to
+refusal, so a thread never parks forever and nothing runs unapproved.
 
 **The Anthropic client is injected into `AgenticDeveloper`**, which is the single
 decision that makes the whole package testable with no API key. Keep it that way;
