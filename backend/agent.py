@@ -33,15 +33,41 @@ CAVEAT_LINE = "⚠️ Always verify AI output before using"
 
 _LANGUAGE_RULES = {
     "english": (
-        "Write in clear, simple English that a B1-level reader can follow.\n"
-        "The fixed CTA lines given in a template are brand signatures — reproduce\n"
-        "them exactly as written, in Roman Urdu. Do not translate them."
+        "Write every line you compose in clear, simple English — the hook, the\n"
+        "problem, and the outcome bullets included.\n"
+        "Exactly three lines are fixed brand signatures kept in Roman Urdu:\n"
+        f"  {CAVEAT_LINE}\n  {CTA_PROMPT_LINE}\n  {CTA_FOLLOW_LINE}\n"
+        "Copy those three verbatim. They are the ONLY Roman Urdu in the post."
     ),
     "hinglish": (
         "Write in Roman Urdu mixed with English, the way Pakistani creators\n"
         "actually talk. Keep technical terms in English. Never use Urdu script."
     ),
 }
+
+# Appended AFTER the platform rules. The Facebook template contains Roman Urdu
+# CTA lines, and a model reading them last will match their language for the
+# whole post -- the exact bug this setting exists to prevent. Recency beats
+# any amount of emphasis earlier in the prompt.
+_LANGUAGE_REMINDERS = {
+    "english": (
+        "LANGUAGE CHECK — apply this last, it overrides any impression the\n"
+        "template above may have given:\n"
+        "Everything YOU write is English. The Roman Urdu lines in the template\n"
+        "are fixed strings to copy, not a style to imitate. Writing the hook,\n"
+        "the problem, or the bullets in Roman Urdu is wrong."
+    ),
+    "hinglish": (
+        "LANGUAGE CHECK — apply this last:\n"
+        "Write in Roman Urdu mixed with English throughout. Never Urdu script."
+    ),
+}
+
+
+def _system_prompt(platform: "Platform") -> str:
+    """Brand, then platform rules, then the language rule last for recency."""
+    reminder = _LANGUAGE_REMINDERS.get(LANGUAGE, _LANGUAGE_REMINDERS["english"])
+    return f"{BRAND}\n\n{platform.rules}\n\n{reminder}"
 
 BRAND = f"""CREATOR
 Aamir Patni — an AI educator in Pakistan who teaches practical, hands-on AI.
@@ -369,7 +395,7 @@ Output only the content. No numbering, no preamble, no closing remark."""
 def generate(platform_name: str, headline: str, summary: str, tone: str) -> list[str]:
     """Generate content for any registered platform."""
     platform = PLATFORMS[platform_name]
-    system = f"{BRAND}\n\n{platform.rules}"
+    system = _system_prompt(platform)
     user = _build_user_prompt(platform, headline, summary, tone)
     raw = _call(system, user, platform.max_tokens)
     return split_variations(raw, platform.delimiter, platform.count)
@@ -415,7 +441,7 @@ def generate_reel_script(headline: str, summary: str, tone: str) -> list[str]:
 
 def generate_single_tweet(headline: str, summary: str) -> str:
     """One tweet, used by auto-suggest where speed matters."""
-    system = f"{BRAND}\n\n{PLATFORMS['tweet'].rules}"
+    system = _system_prompt(PLATFORMS["tweet"])
     user = (
         f"Today's date: {date.today().isoformat()}\n\n"
         f"Headline: {headline}\n\nSummary: {summary}\n\n"
@@ -423,6 +449,36 @@ def generate_single_tweet(headline: str, summary: str) -> str:
         "Output only the tweet."
     )
     return _call(system, user, 200).strip()
+
+
+# ── Output validation ──────────────────────────────────────────────────────
+
+# High-frequency Roman Urdu function words. Content words (AI, agent, prompt)
+# are shared with English and carry no signal, so they are not listed.
+_ROMAN_URDU_MARKERS = frozenset({
+    "aap", "aapka", "aapke", "aapko", "hai", "hain", "ho", "hoga", "kya",
+    "nahi", "nahin", "karo", "karein", "karna", "kar", "kiya", "mein", "may",
+    "ke", "ka", "ki", "ko", "se", "par", "bhi", "ye", "yeh", "wo", "woh",
+    "matlab", "liye", "sakte", "sakta", "raha", "rahe", "banao", "banaya",
+    "bana", "abhi", "phir", "lekin", "magar", "zyada", "bilkul", "poora",
+    "chahiye", "hota", "hoti", "padta", "diye", "wala", "wali",
+})
+
+# Lines that are meant to be Roman Urdu in english mode.
+_FIXED_LINES = (CTA_PROMPT_LINE, CTA_FOLLOW_LINE, CAVEAT_LINE)
+
+
+def roman_urdu_score(text: str) -> int:
+    """Count Roman Urdu marker words outside the fixed brand lines.
+
+    Used to verify that CONTENT_LANGUAGE is actually controlling the output.
+    A post written in English scores 0-1; one written in Roman Urdu scores high.
+    """
+    body = text
+    for line in _FIXED_LINES:
+        body = body.replace(line, " ")
+    words = re.findall(r"[a-zA-Z']+", body.lower())
+    return sum(1 for word in words if word in _ROMAN_URDU_MARKERS)
 
 
 # ── Viral rewrite ──────────────────────────────────────────────────────────

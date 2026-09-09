@@ -76,6 +76,43 @@ class TestBrandAndLanguage(unittest.TestCase):
             self.assertIn("NEVER WRITE", system, f"{name} missing anti-slop rules")
 
 
+class TestLanguageControl(unittest.TestCase):
+    """The setting must actually control the output, and be verifiable."""
+
+    def test_language_rule_comes_last_in_the_system_prompt(self) -> None:
+        """The Facebook template holds Roman Urdu CTA lines; a language rule
+        placed before it loses to recency, which is how the live run produced
+        a Roman Urdu body under language=english."""
+        system = agent._system_prompt(agent.PLATFORMS["facebook"])
+        self.assertGreater(
+            system.rindex("LANGUAGE CHECK"),
+            system.rindex(agent.CTA_PROMPT_LINE),
+            "language rule must come after the template's Roman Urdu lines",
+        )
+
+    def test_every_platform_gets_the_language_rule_last(self) -> None:
+        for name in agent.PLATFORMS:
+            with self.subTest(platform=name):
+                self.assertIn("LANGUAGE CHECK", agent._system_prompt(agent.PLATFORMS[name]))
+
+    def test_detector_scores_roman_urdu_high(self) -> None:
+        text = "Aapka pehla AI agent bilkul free bana sakte ho ab. Matlab ab nahi karna padta."
+        self.assertGreaterEqual(agent.roman_urdu_score(text), 5)
+
+    def test_detector_scores_english_zero(self) -> None:
+        text = "Your first AI agent is now free to build. No subscription needed up front."
+        self.assertEqual(agent.roman_urdu_score(text), 0)
+
+    def test_fixed_cta_lines_do_not_count_against_english(self) -> None:
+        """The brand signatures are Roman Urdu by design and must not trip it."""
+        post = (
+            "Build your first AI agent for free.\n"
+            "OpenAI launched a free tier. No subscription required.\n"
+            f"{agent.CAVEAT_LINE}\n{agent.CTA_PROMPT_LINE}\n{agent.CTA_FOLLOW_LINE}"
+        )
+        self.assertLessEqual(agent.roman_urdu_score(post), 2)
+
+
 class TestUserPrompt(unittest.TestCase):
     def build(self, platform_name: str, summary: str = "A summary.") -> str:
         return agent._build_user_prompt(

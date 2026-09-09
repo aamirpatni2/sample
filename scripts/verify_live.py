@@ -108,6 +108,23 @@ def verify_content(results: Results) -> None:
         joined = " ".join(posts).lower()
         hits = [phrase for phrase in BANNED if phrase in joined]
         results.check("no banned filler phrases", not hits, ", ".join(hits))
+
+        # The check the first version of this script was missing: does the
+        # CONTENT_LANGUAGE setting actually control the output language?
+        for i, post in enumerate(posts, 1):
+            score = agent.roman_urdu_score(post)
+            if agent.LANGUAGE == "english":
+                results.check(
+                    f"facebook #{i} body is English",
+                    score <= 2,
+                    f"{score} Roman Urdu markers outside the fixed CTA lines",
+                )
+            else:
+                results.check(
+                    f"facebook #{i} body is Hinglish",
+                    score >= 3,
+                    f"only {score} Roman Urdu markers",
+                )
     print(f"  {DIM}{elapsed:.1f}s{RESET}")
 
     # Tweets: the hard character ceiling.
