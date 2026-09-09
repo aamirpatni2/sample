@@ -62,6 +62,44 @@ class TestErrorGuidance(unittest.TestCase):
         self.assertEqual(headline, "ValueError")
         self.assertEqual(guidance, "odd")
 
+    def test_401_names_the_real_causes(self) -> None:
+        class Unauthorized(Exception):
+            status_code = 401
+
+        _, guidance = server.explain(Unauthorized("nope"))
+        self.assertIn("revoked", guidance.lower())
+        self.assertIn("reset-key", guidance)
+
+    def test_401_includes_a_fingerprint_to_compare(self) -> None:
+        import os
+
+        saved = os.environ.get("ANTHROPIC_API_KEY")
+        os.environ["ANTHROPIC_API_KEY"] = "sk-ant-api03-" + "x" * 40 + "WXYZ"
+        try:
+            class Unauthorized(Exception):
+                status_code = 401
+
+            _, guidance = server.explain(Unauthorized("nope"))
+            self.assertIn("WXYZ", guidance)
+            self.assertIn("57 characters", guidance)
+            # The middle of the key must never be rendered in a browser.
+            self.assertNotIn("x" * 20, guidance)
+        finally:
+            if saved is None:
+                os.environ.pop("ANTHROPIC_API_KEY", None)
+            else:
+                os.environ["ANTHROPIC_API_KEY"] = saved
+
+    def test_fingerprint_without_a_key(self) -> None:
+        import os
+
+        saved = os.environ.pop("ANTHROPIC_API_KEY", None)
+        try:
+            self.assertIn("No key", server.key_fingerprint())
+        finally:
+            if saved is not None:
+                os.environ["ANTHROPIC_API_KEY"] = saved
+
     def test_guidance_never_contains_a_key(self) -> None:
         for headline, guidance in server.ERROR_GUIDANCE.values():
             self.assertNotIn("sk-ant-api", headline + guidance)

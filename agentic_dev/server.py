@@ -32,13 +32,15 @@ DASHBOARD = Path(__file__).parent / "dashboard.html"
 ERROR_GUIDANCE: dict[int, tuple[str, str]] = {
     401: (
         "Your API key was rejected.",
-        "The key reached Anthropic but was refused. Usually it is an old key "
-        "that has been revoked, or one set in a different terminal window than "
-        "the one that started this server.\n\n"
-        "Fix it in the SAME window you launch from:\n"
-        '  $env:ANTHROPIC_API_KEY="sk-ant-..."\n'
-        "  python -m agentic_dev.server\n\n"
-        "Get a fresh key at console.anthropic.com/settings/keys",
+        "The key reached Anthropic and was refused, so it is a real key that is "
+        "no longer accepted. Almost always one of:\n\n"
+        "  1. It was revoked or deleted in the console.\n"
+        "  2. It was copied incompletely -- check the length below.\n"
+        "  3. It belongs to a different Anthropic account.\n\n"
+        "To use a different key:\n"
+        "  Delete the .env file in this folder, then run reset-key.bat\n"
+        "  (or agent-dashboard.bat) -- it will ask for a new key.\n\n"
+        "Create one at console.anthropic.com/settings/keys",
     ),
     403: ("Your API key is not permitted to do this.",
           "The key is valid but lacks access to this model or endpoint."),
@@ -47,11 +49,32 @@ ERROR_GUIDANCE: dict[int, tuple[str, str]] = {
 }
 
 
+def key_fingerprint() -> str:
+    """Describe the key in use without revealing it.
+
+    The prefix is identical for every Anthropic key and the last four
+    characters are what the console shows, so this is enough to tell whether
+    the key running here is the one you think it is.
+    """
+    import os
+
+    key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        return "No key is set."
+    if len(key) < 12:
+        return f"Key in use: {len(key)} characters -- far too short."
+    return (f"Key in use: {key[:14]}...{key[-4:]}  ({len(key)} characters). "
+            "Compare the last four with console.anthropic.com/settings/keys.")
+
+
 def explain(exc: Exception) -> tuple[str, str]:
     """Turn an exception into (headline, what to do about it)."""
     status = getattr(exc, "status_code", None)
     if isinstance(status, int) and status in ERROR_GUIDANCE:
-        return ERROR_GUIDANCE[status]
+        headline, guidance = ERROR_GUIDANCE[status]
+        if status == 401:
+            guidance = f"{guidance}\n\n{key_fingerprint()}"
+        return headline, guidance
     if type(exc).__name__ in {"APIConnectionError", "APITimeoutError"}:
         return ("Could not reach Anthropic.",
                 "Check your internet connection, then try again.")
