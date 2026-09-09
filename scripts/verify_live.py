@@ -41,16 +41,42 @@ BANNED = ["game changer", "game-changer", "dive in", "revolutionary", "unlock th
 
 
 class Results:
-    """Collects pass/fail checks and prints a scorecard."""
+    """Collects pass/fail checks, prints a scorecard, and saves a plain copy.
+
+    The saved file exists so a run can be shared without scrolling back
+    through a terminal and stripping colour codes by hand.
+    """
 
     def __init__(self) -> None:
         self.rows: list[tuple[str, bool, str]] = []
+        self.lines: list[str] = []
+
+    def record(self, line: str) -> None:
+        """Add a line to the saved report without printing it again."""
+        self.lines.append(line)
 
     def check(self, name: str, passed: bool, detail: str = "") -> bool:
         self.rows.append((name, passed, detail))
         mark = f"{GREEN}PASS{RESET}" if passed else f"{RED}FAIL{RESET}"
         print(f"  {mark}  {name}" + (f" {DIM}— {detail}{RESET}" if detail else ""))
+        self.record(f"  {'PASS' if passed else 'FAIL'}  {name}"
+                    + (f" - {detail}" if detail else ""))
         return passed
+
+    def save(self, path: Path) -> None:
+        """Write a colour-free copy of the run to *path*."""
+        passed = len(self.rows) - self.failed
+        header = [
+            "Live verification result",
+            time.strftime("%Y-%m-%d %H:%M:%S"),
+            "",
+        ]
+        footer = ["", f"{passed}/{len(self.rows)} checks passed"]
+        if self.failed:
+            footer.append("")
+            footer.append("Failures:")
+            footer += [f"  - {n}: {d}" for n, ok, d in self.rows if not ok]
+        path.write_text("\n".join(header + self.lines + footer) + "\n", encoding="utf-8")
 
     @property
     def failed(self) -> int:
@@ -65,8 +91,11 @@ class Results:
                 print(f"  {RED}✗{RESET} {name}: {detail}")
 
 
-def section(title: str) -> None:
+def section(title: str, results: "Results | None" = None) -> None:
     print(f"\n{BOLD}{title}{RESET}")
+    if results is not None:
+        results.record("")
+        results.record(title)
 
 
 # ── Content agent ──────────────────────────────────────────────────────────
@@ -74,7 +103,7 @@ def section(title: str) -> None:
 def verify_content(results: Results) -> None:
     import agent
 
-    section(f"Content agent  ({agent.MODEL}, language={agent.LANGUAGE})")
+    section(f"Content agent  ({agent.MODEL}, language={agent.LANGUAGE})", results)
 
     # Facebook: the platform whose contract was most broken before.
     start = time.time()
@@ -155,7 +184,7 @@ def verify_agent(results: Results) -> None:
     from agentic_dev.tools import ToolContext
 
     settings = Settings.from_env()
-    section(f"Agentic developer  ({settings.model})")
+    section(f"Agentic developer  ({settings.model})", results)
 
     with tempfile.TemporaryDirectory() as tmp:
         workspace = Path(tmp)
@@ -232,6 +261,14 @@ def main() -> int:
             results.check("agentic developer ran without raising", False, f"{type(exc).__name__}: {exc}")
 
     results.summary()
+
+    report = REPO / "verify-result.txt"
+    try:
+        results.save(report)
+        print(f"\n{BOLD}Full result saved to:{RESET} {report}")
+        print(f"{DIM}Open that file and paste its contents — no scrolling needed.{RESET}")
+    except OSError as exc:
+        print(f"{YELLOW}Could not save the report: {exc}{RESET}", file=sys.stderr)
 
     if run_content:
         try:
