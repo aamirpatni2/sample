@@ -32,3 +32,7 @@ Then open `frontend/index.html` in your browser.
 - Three tones: Informative, Breaking News, Thought-Provoking
 - Hinglish style (English + Urdu mix) for Pakistani audience
 - One-click copy for each post
+
+## Kage landing page
+
+A standalone Vite + React app in [`landing/`](landing/README.md) renders the ThreeUI `KageLandingPage` component.
